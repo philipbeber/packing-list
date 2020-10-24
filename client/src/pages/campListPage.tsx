@@ -157,7 +157,7 @@ const CampListPage: React.FC = () => {
             edge="start"
             className={classes.menuButton}
             color="inherit"
-            aria-label="menu"
+            aria-label="back"
             onClick={() => campDispatch({ type: "CLOSE_CAMP_LIST" })}
           >
             <Icons.ArrowBackIos />

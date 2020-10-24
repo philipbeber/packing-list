@@ -22,8 +22,8 @@ export const typeDefs = gql`
   }
 
   type LoginResponse {
-    token: String
-    user: User
+    token: String!
+    user: User!
   }
 
   type Operation {

@@ -20,6 +20,10 @@ import { AppState } from "../redux/reducers/rootReducer";
 import CreateCamp from "../components/createCamp";
 import { CampActions } from "../redux/actions/campActions";
 import { createSelector } from "reselect";
+import { useQuery } from "@apollo/client";
+import { IS_LOGGED_IN } from "../apollo";
+import Login from "../components/login";
+import { logout } from "../apollo/login";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -27,6 +31,9 @@ const useStyles = makeStyles((theme) => ({
   },
   menuButton: {
     marginRight: theme.spacing(2),
+  },
+  menuActionButton: {
+    marginRight: -16,
   },
   title: {
     flexGrow: 1,
@@ -45,9 +52,15 @@ const campListSelector = createSelector(
 const HomePage: React.FC = () => {
   const classes = useStyles();
   const campList = useSelector((state: AppState) => campListSelector(state));
+  const { data } = useQuery(IS_LOGGED_IN);
+  const isLoggedIn = data.isLoggedIn;
   const [createCampOpen, setCreateCampOpen] = React.useState(false);
+  const [loginOpen, setLoginOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const campDispatch = useDispatch<Dispatch<CampActions>>();
+  if (isLoggedIn && loginOpen) {
+    setLoginOpen(false);
+  }
 
   return (
     <Container maxWidth="sm">
@@ -55,6 +68,7 @@ const HomePage: React.FC = () => {
         open={createCampOpen}
         onClose={() => setCreateCampOpen(false)}
       />
+      <Login open={loginOpen} onClose={() => setLoginOpen(false)} />
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" className={classes.title}>
@@ -65,8 +79,9 @@ const HomePage: React.FC = () => {
             onClick={(e) => {
               setAnchorEl(e.currentTarget);
             }}
+            className={classes.menuActionButton}
           >
-            <Icons.Add />
+            <Icons.MoreVert />
           </Button>
           <Menu
             anchorEl={anchorEl}
@@ -74,6 +89,18 @@ const HomePage: React.FC = () => {
             open={Boolean(anchorEl)}
             onClose={() => setAnchorEl(null)}
           >
+            {!isLoggedIn ? (
+              <MenuItem
+                onClick={() => {
+                  setLoginOpen(true);
+                  setAnchorEl(null);
+                }}
+              >
+                Log in
+              </MenuItem>
+            ) : (
+              ""
+            )}
             <MenuItem
               onClick={() => {
                 setCreateCampOpen(true);
@@ -84,6 +111,23 @@ const HomePage: React.FC = () => {
             </MenuItem>
             <MenuItem disabled>Join a camp</MenuItem>
             <MenuItem disabled>Create a private list</MenuItem>
+            {isLoggedIn ? (
+              <MenuItem onClick={() => {}}>Synchronize</MenuItem>
+            ) : (
+              ""
+            )}
+            {isLoggedIn ? (
+              <MenuItem
+                onClick={() => {
+                  logout();
+                  setAnchorEl(null);
+                }}
+              >
+                Log out
+              </MenuItem>
+            ) : (
+              ""
+            )}
           </Menu>
         </Toolbar>
       </AppBar>

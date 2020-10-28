@@ -1,42 +1,36 @@
-import { DataSources } from "./datasources";
+import { AuthenticationError } from "apollo-server";
+import { MyDataSources as DataSources } from "./datasources";
+import { Resolvers } from "./generated/graphql";
 
 type Context = { dataSources: DataSources };
-type LoginParameters = { email: string; password: string };
 
-export const resolvers = {
+export const resolvers: Resolvers<Context> = {
   Query: {
-    camps: async (_: any, __: any, { dataSources }: Context) => {
-      return [
-        {
-          id: 123,
-          name: "The Camp for Happy Campers",
-          members: [],
-          lists: [],
-          deleted: false,
-        },
-      ];
-    },
-    me: async (_: any, __: any, { dataSources }: Context) => ({
-      id: 12345,
-      email: "bob@happycamping.com",
-      displayName: "Bob (Ranger Bilbo)",
+    me: async (parent, args, { dataSources }) => ({
+      id: "12345",
+      username: "bob@happycamping.com",
+      name: "Bob (Ranger Bilbo)",
     }),
   },
   Mutation: {
-    sendOperations: async (
-      _: any,
-      { operations }: any,
-      { dataSources }: Context
+    synchronize: async (
+      parent,
+      args,
+      { dataSources }
     ) => {
-      return {
-        success: true,
-      };
+      return dataSources.campAPI.syncCamp(args);
     },
-    login: async (
-      _: any,
-      { email, password }: LoginParameters,
-      { dataSources }: Context
-    ) => {
+    async login(
+      parent,
+      { email, password },
+      { dataSources }
+    ) {
+      if (!email) {
+        throw new AuthenticationError("Invalid email")
+      }
+      if (!password) {
+        throw new AuthenticationError("Invalid password")
+      }
       return dataSources.userAPI.login(email, password);
     },
   },

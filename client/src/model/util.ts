@@ -1,7 +1,7 @@
 import * as uuid from "short-uuid";
 import { Camp } from "./camp";
 import {
-  CampOperation,
+  CampOperationBase,
   ChangeCampItemDeletedOperation,
   ChangeCampItemStateOperation,
   CreateCampItemOperation,
@@ -19,7 +19,7 @@ function generateId() {
   return uuid.generate();
 }
 
-function createOperation(campId: string): CampOperation {
+function createOperation(campId: string): CampOperationBase {
   return {
     id: generateId(),
     timestamp: Date.now(),

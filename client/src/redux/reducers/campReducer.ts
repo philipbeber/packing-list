@@ -1,11 +1,11 @@
-import { applyOperationToCamp, Camp, CampOperations } from "../../model";
+import { applyOperationToCamp, Camp, CampOperation } from "../../model";
 import { CampActions } from "../actions/campActions";
 
 interface CampState {
   selectedCampId?: string;
   selectedListId?: string;
   camps: Camp[];
-  pendingOperations: CampOperations[];
+  pendingOperations: CampOperation[];
 }
 export const initialState: CampState = {
   camps: [],

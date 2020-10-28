@@ -6,6 +6,10 @@ generates:
     plugins:
       - "typescript"
       - "typescript-resolvers"
+    config:
+      useIndexSignature: true
+      namingConvention:
+        enumValues: upper-case#upperCase
   ./graphql.schema.json:
     plugins:
       - "introspection"

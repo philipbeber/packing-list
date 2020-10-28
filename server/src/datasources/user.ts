@@ -1,5 +1,6 @@
-import { DataSource } from "apollo-datasource";
+import { DataSource, DataSourceConfig } from "apollo-datasource";
 import { AuthenticationError } from "apollo-server";
+import { ExpressContext } from "apollo-server-express/dist/ApolloServer";
 import { compare, hash } from "bcrypt";
 import { LoginResponse, User } from "../generated/graphql";
 import { makeToken } from "../model/authToken";
@@ -7,9 +8,15 @@ import { Store } from "../model/store";
 
 const saltRounds = 10;
 
-export class UserAPI extends DataSource {
+export interface MyContext {
+  userId?: string
+}
+
+
+
+export class UserAPI extends DataSource<MyContext> {
   private context: any;
-  constructor(private store: Promise<Store>) {
+  constructor(private store: Store) {
     super();
   }
 
@@ -19,14 +26,14 @@ export class UserAPI extends DataSource {
    * like caches and context. We'll assign this.context to the request context
    * here, so we can know about the user making requests
    */
-  initialize(config: any) {
+  async initialize(config: DataSourceConfig<MyContext>) {
     this.context = config.context;
+    await this.store.initialize();
   }
 
   async login(email: string, password: string): Promise<LoginResponse> {
     // Load hash from the db, which was preivously stored
-    const store = await this.store;
-    const user = await store.getUserByUserName(email);
+    const user = await this.store.getUserByUserName(email);
     console.log(user);
     if (!user) {
       throw new AuthenticationError("User not found");
@@ -37,9 +44,9 @@ export class UserAPI extends DataSource {
       throw new AuthenticationError("Incorrect password");
     }
     return {
-      token: makeToken({ userId: user._id }),
+      token: makeToken({ userId: user.id }),
       user: {
-        id: user._id,
+        id: user.id,
         username: user.username,
         name: user.name,
       },

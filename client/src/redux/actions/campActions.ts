@@ -1,7 +1,7 @@
 import {
   Camp,
+  CampOperationBase,
   CampOperation,
-  CampOperations,
   Item,
   ItemState,
   List,
@@ -18,7 +18,7 @@ export interface ICloseCampAction {
 
 export interface IUserOperationAction {
   readonly type: "USER_OPERATION";
-  payload: CampOperations;
+  payload: CampOperation;
 }
 
 export interface IOpenCampListAction {

@@ -265,20 +265,20 @@ const CampListPage: React.FC = () => {
               }}
             >
               <MenuItem
-                onClick={handleBulkChangeItemState(ItemState.Unpurchased)}
+                onClick={handleBulkChangeItemState(ItemState.UNPURCHASED)}
               >
                 Unpurchased
               </MenuItem>
               <MenuItem
-                onClick={handleBulkChangeItemState(ItemState.Purchased)}
+                onClick={handleBulkChangeItemState(ItemState.PURCHASED)}
               >
                 Purchased
               </MenuItem>
-              <MenuItem onClick={handleBulkChangeItemState(ItemState.PackedIn)}>
+              <MenuItem onClick={handleBulkChangeItemState(ItemState.PACKEDIN)}>
                 Packed (in)
               </MenuItem>
               <MenuItem
-                onClick={handleBulkChangeItemState(ItemState.PackedOut)}
+                onClick={handleBulkChangeItemState(ItemState.PACKEDOUT)}
               >
                 Packed (out)
               </MenuItem>
@@ -310,10 +310,10 @@ const CampListPage: React.FC = () => {
                   })
                 }
               >
-                <MenuItem value={ItemState.Unpurchased}>Unpurchased</MenuItem>
-                <MenuItem value={ItemState.Purchased}>Purchased</MenuItem>
-                <MenuItem value={ItemState.PackedIn}>Packed (In)</MenuItem>
-                <MenuItem value={ItemState.PackedOut}>Packed (Out)</MenuItem>
+                <MenuItem value={ItemState.UNPURCHASED}>Unpurchased</MenuItem>
+                <MenuItem value={ItemState.PURCHASED}>Purchased</MenuItem>
+                <MenuItem value={ItemState.PACKEDIN}>Packed (In)</MenuItem>
+                <MenuItem value={ItemState.PACKEDOUT}>Packed (Out)</MenuItem>
               </Select>
             </ListItem>
           ))}

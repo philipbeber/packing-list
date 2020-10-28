@@ -2,13 +2,16 @@ import { gql } from "apollo-server";
 
 export const typeDefs = gql`
   type Query {
-    camps: [Camp]!
-    lists: [List]!
     me: User
   }
 
   type Mutation {
-    sendOperations(operations: [OperationInput!]!): SendOperationsResponse
+    synchronize(
+      campId: ID!
+      opIndex: Int!
+      lastOp: ID
+      newOps: [OperationInput!]
+    ): [Operation]
     login(email: String, password: String): LoginResponse
   }
 
@@ -32,7 +35,7 @@ export const typeDefs = gql`
     timestamp: Int!
     campId: ID
     listId: ID
-    itemIds: [ID]
+    itemIds: [ID!]
     name: String
     state: ItemState
     deleted: Boolean
@@ -42,9 +45,8 @@ export const typeDefs = gql`
     type: String!
     id: ID!
     timestamp: Int!
-    campId: ID
     listId: ID
-    itemIds: [ID]
+    itemIds: [ID!]
     name: String
     state: ItemState
     deleted: Boolean

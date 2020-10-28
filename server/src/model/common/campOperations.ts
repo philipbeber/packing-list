@@ -3,7 +3,6 @@ import { ItemState } from "./item";
 export interface CampOperationBase {
   readonly id: string;
   readonly timestamp: number;
-  readonly campId: string;
   //readonly userId: number;
 }
 

@@ -16,8 +16,8 @@ export interface Login_login_user {
 
 export interface Login_login {
   __typename: "LoginResponse";
-  token: string | null;
-  user: Login_login_user | null;
+  token: string;
+  user: Login_login_user;
 }
 
 export interface Login {

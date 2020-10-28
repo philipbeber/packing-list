@@ -14,8 +14,8 @@ export type Scalars = {
 };
 
 export enum CacheControlScope {
-  Public = 'PUBLIC',
-  Private = 'PRIVATE'
+  PUBLIC = 'PUBLIC',
+  PRIVATE = 'PRIVATE'
 }
 
 export type Camp = {
@@ -43,10 +43,10 @@ export type Item = {
 };
 
 export enum ItemState {
-  Unpurchased = 'UNPURCHASED',
-  Purchased = 'PURCHASED',
-  Packedin = 'PACKEDIN',
-  Packedout = 'PACKEDOUT'
+  UNPURCHASED = 'UNPURCHASED',
+  PURCHASED = 'PURCHASED',
+  PACKEDIN = 'PACKEDIN',
+  PACKEDOUT = 'PACKEDOUT'
 }
 
 export type List = {
@@ -59,8 +59,8 @@ export type List = {
 
 export type LoginResponse = {
   __typename?: 'LoginResponse';
-  token?: Maybe<Scalars['String']>;
-  user?: Maybe<User>;
+  token: Scalars['String'];
+  user: User;
 };
 
 export type Member = {
@@ -74,13 +74,16 @@ export type Member = {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  sendOperations?: Maybe<SendOperationsResponse>;
+  synchronize?: Maybe<Array<Maybe<Operation>>>;
   login?: Maybe<LoginResponse>;
 };
 
 
-export type MutationSendOperationsArgs = {
-  operations: Array<OperationInput>;
+export type MutationSynchronizeArgs = {
+  campId: Scalars['ID'];
+  opIndex: Scalars['Int'];
+  lastOp?: Maybe<Scalars['ID']>;
+  newOps?: Maybe<Array<OperationInput>>;
 };
 
 
@@ -96,7 +99,7 @@ export type Operation = {
   timestamp: Scalars['Int'];
   campId?: Maybe<Scalars['ID']>;
   listId?: Maybe<Scalars['ID']>;
-  itemIds?: Maybe<Array<Maybe<Scalars['ID']>>>;
+  itemIds?: Maybe<Array<Scalars['ID']>>;
   name?: Maybe<Scalars['String']>;
   state?: Maybe<ItemState>;
   deleted?: Maybe<Scalars['Boolean']>;
@@ -106,9 +109,8 @@ export type OperationInput = {
   type: Scalars['String'];
   id: Scalars['ID'];
   timestamp: Scalars['Int'];
-  campId?: Maybe<Scalars['ID']>;
   listId?: Maybe<Scalars['ID']>;
-  itemIds?: Maybe<Array<Maybe<Scalars['ID']>>>;
+  itemIds?: Maybe<Array<Scalars['ID']>>;
   name?: Maybe<Scalars['String']>;
   state?: Maybe<ItemState>;
   deleted?: Maybe<Scalars['Boolean']>;
@@ -116,8 +118,6 @@ export type OperationInput = {
 
 export type Query = {
   __typename?: 'Query';
-  camps: Array<Maybe<Camp>>;
-  lists: Array<Maybe<List>>;
   me?: Maybe<User>;
 };
 
@@ -145,7 +145,8 @@ export type User = {
   name: Scalars['String'];
 };
 
-
+export type WithIndex<TObject> = TObject & Record<string, any>;
+export type ResolversObject<TObject> = WithIndex<TObject>;
 
 export type ResolverTypeWrapper<T> = Promise<T> | T;
 
@@ -222,146 +223,144 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 ) => TResult | Promise<TResult>;
 
 /** Mapping between all available schema types and the resolvers types */
-export type ResolversTypes = {
+export type ResolversTypes = ResolversObject<{
   Query: ResolverTypeWrapper<{}>;
-  Camp: ResolverTypeWrapper<Camp>;
+  User: ResolverTypeWrapper<User>;
   ID: ResolverTypeWrapper<Scalars['ID']>;
   String: ResolverTypeWrapper<Scalars['String']>;
-  Member: ResolverTypeWrapper<Member>;
-  Int: ResolverTypeWrapper<Scalars['Int']>;
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
-  List: ResolverTypeWrapper<List>;
-  Item: ResolverTypeWrapper<Item>;
-  ItemState: ItemState;
-  Float: ResolverTypeWrapper<Scalars['Float']>;
-  User: ResolverTypeWrapper<User>;
   Mutation: ResolverTypeWrapper<{}>;
+  Int: ResolverTypeWrapper<Scalars['Int']>;
   OperationInput: OperationInput;
-  SendOperationsResponse: ResolverTypeWrapper<SendOperationsResponse>;
+  ItemState: ItemState;
+  Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
+  Operation: ResolverTypeWrapper<Operation>;
   LoginResponse: ResolverTypeWrapper<LoginResponse>;
   Subscription: ResolverTypeWrapper<{}>;
-  Operation: ResolverTypeWrapper<Operation>;
+  SendOperationsResponse: ResolverTypeWrapper<SendOperationsResponse>;
   CampUpdateResponse: ResolverTypeWrapper<CampUpdateResponse>;
+  Camp: ResolverTypeWrapper<Camp>;
+  Member: ResolverTypeWrapper<Member>;
+  List: ResolverTypeWrapper<List>;
+  Item: ResolverTypeWrapper<Item>;
+  Float: ResolverTypeWrapper<Scalars['Float']>;
   CacheControlScope: CacheControlScope;
   Upload: ResolverTypeWrapper<Scalars['Upload']>;
-};
+}>;
 
 /** Mapping between all available schema types and the resolvers parents */
-export type ResolversParentTypes = {
+export type ResolversParentTypes = ResolversObject<{
   Query: {};
-  Camp: Camp;
+  User: User;
   ID: Scalars['ID'];
   String: Scalars['String'];
-  Member: Member;
+  Mutation: {};
   Int: Scalars['Int'];
+  OperationInput: OperationInput;
   Boolean: Scalars['Boolean'];
+  Operation: Operation;
+  LoginResponse: LoginResponse;
+  Subscription: {};
+  SendOperationsResponse: SendOperationsResponse;
+  CampUpdateResponse: CampUpdateResponse;
+  Camp: Camp;
+  Member: Member;
   List: List;
   Item: Item;
   Float: Scalars['Float'];
-  User: User;
-  Mutation: {};
-  OperationInput: OperationInput;
-  SendOperationsResponse: SendOperationsResponse;
-  LoginResponse: LoginResponse;
-  Subscription: {};
-  Operation: Operation;
-  CampUpdateResponse: CampUpdateResponse;
   Upload: Scalars['Upload'];
-};
+}>;
 
-export type CampResolvers<ContextType = any, ParentType extends ResolversParentTypes['Camp'] = ResolversParentTypes['Camp']> = {
+export type CampResolvers<ContextType = any, ParentType extends ResolversParentTypes['Camp'] = ResolversParentTypes['Camp']> = ResolversObject<{
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   members?: Resolver<Array<Maybe<ResolversTypes['Member']>>, ParentType, ContextType>;
   lists?: Resolver<Array<Maybe<ResolversTypes['List']>>, ParentType, ContextType>;
   deleted?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type CampUpdateResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['CampUpdateResponse'] = ResolversParentTypes['CampUpdateResponse']> = {
+export type CampUpdateResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['CampUpdateResponse'] = ResolversParentTypes['CampUpdateResponse']> = ResolversObject<{
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   message?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type ItemResolvers<ContextType = any, ParentType extends ResolversParentTypes['Item'] = ResolversParentTypes['Item']> = {
+export type ItemResolvers<ContextType = any, ParentType extends ResolversParentTypes['Item'] = ResolversParentTypes['Item']> = ResolversObject<{
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   assignedTo?: Resolver<Maybe<Array<Maybe<ResolversTypes['Int']>>>, ParentType, ContextType>;
   state?: Resolver<Maybe<ResolversTypes['ItemState']>, ParentType, ContextType>;
   position?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type ListResolvers<ContextType = any, ParentType extends ResolversParentTypes['List'] = ResolversParentTypes['List']> = {
+export type ListResolvers<ContextType = any, ParentType extends ResolversParentTypes['List'] = ResolversParentTypes['List']> = ResolversObject<{
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   items?: Resolver<Array<Maybe<ResolversTypes['Item']>>, ParentType, ContextType>;
   position?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type LoginResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['LoginResponse'] = ResolversParentTypes['LoginResponse']> = {
-  token?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+export type LoginResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['LoginResponse'] = ResolversParentTypes['LoginResponse']> = ResolversObject<{
+  token?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type MemberResolvers<ContextType = any, ParentType extends ResolversParentTypes['Member'] = ResolversParentTypes['Member']> = {
+export type MemberResolvers<ContextType = any, ParentType extends ResolversParentTypes['Member'] = ResolversParentTypes['Member']> = ResolversObject<{
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   userId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   role?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   deleted?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
-  sendOperations?: Resolver<Maybe<ResolversTypes['SendOperationsResponse']>, ParentType, ContextType, RequireFields<MutationSendOperationsArgs, 'operations'>>;
+export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
+  synchronize?: Resolver<Maybe<Array<Maybe<ResolversTypes['Operation']>>>, ParentType, ContextType, RequireFields<MutationSynchronizeArgs, 'campId' | 'opIndex'>>;
   login?: Resolver<Maybe<ResolversTypes['LoginResponse']>, ParentType, ContextType, RequireFields<MutationLoginArgs, never>>;
-};
+}>;
 
-export type OperationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Operation'] = ResolversParentTypes['Operation']> = {
+export type OperationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Operation'] = ResolversParentTypes['Operation']> = ResolversObject<{
   type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   timestamp?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   campId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   listId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  itemIds?: Resolver<Maybe<Array<Maybe<ResolversTypes['ID']>>>, ParentType, ContextType>;
+  itemIds?: Resolver<Maybe<Array<ResolversTypes['ID']>>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   state?: Resolver<Maybe<ResolversTypes['ItemState']>, ParentType, ContextType>;
   deleted?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type QueryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
-  camps?: Resolver<Array<Maybe<ResolversTypes['Camp']>>, ParentType, ContextType>;
-  lists?: Resolver<Array<Maybe<ResolversTypes['List']>>, ParentType, ContextType>;
+export type QueryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-};
+}>;
 
-export type SendOperationsResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['SendOperationsResponse'] = ResolversParentTypes['SendOperationsResponse']> = {
+export type SendOperationsResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['SendOperationsResponse'] = ResolversParentTypes['SendOperationsResponse']> = ResolversObject<{
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   message?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type SubscriptionResolvers<ContextType = any, ParentType extends ResolversParentTypes['Subscription'] = ResolversParentTypes['Subscription']> = {
+export type SubscriptionResolvers<ContextType = any, ParentType extends ResolversParentTypes['Subscription'] = ResolversParentTypes['Subscription']> = ResolversObject<{
   campOperationAdded?: SubscriptionResolver<Maybe<ResolversTypes['Operation']>, "campOperationAdded", ParentType, ContextType, RequireFields<SubscriptionCampOperationAddedArgs, 'campId'>>;
-};
+}>;
 
 export interface UploadScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Upload'], any> {
   name: 'Upload';
 }
 
-export type UserResolvers<ContextType = any, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
+export type UserResolvers<ContextType = any, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   username?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+}>;
 
-export type Resolvers<ContextType = any> = {
+export type Resolvers<ContextType = any> = ResolversObject<{
   Camp?: CampResolvers<ContextType>;
   CampUpdateResponse?: CampUpdateResponseResolvers<ContextType>;
   Item?: ItemResolvers<ContextType>;
@@ -375,7 +374,7 @@ export type Resolvers<ContextType = any> = {
   Subscription?: SubscriptionResolvers<ContextType>;
   Upload?: GraphQLScalarType;
   User?: UserResolvers<ContextType>;
-};
+}>;
 
 
 /**

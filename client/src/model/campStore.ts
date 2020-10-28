@@ -1,6 +1,5 @@
 import _ from "lodash";
-import { applyOperationToCamp, Camp } from "./camp";
-import { CampOperation } from "./campOperations";
+import { applyOperationToCamp, Camp, CampOperation } from "desert-thing-packing-list-common";
 
 export class CampStore {
   current: Camp;

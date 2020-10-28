@@ -7,7 +7,7 @@ import {
   CampOperation,
   ChangeCampItemStateOperation,
   ItemState,
-} from "../model";
+} from "desert-thing-packing-list-common";
 import { LoggedInUser } from "../model/loggedInUser";
 import { loggedInVar } from "./cache";
 import { client } from "./client";

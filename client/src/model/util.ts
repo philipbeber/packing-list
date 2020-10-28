@@ -1,5 +1,5 @@
 import * as uuid from "short-uuid";
-import { Camp } from "./camp";
+import { Camp } from "desert-thing-packing-list-common";
 import {
   CampOperationBase,
   ChangeCampItemDeletedOperation,
@@ -8,8 +8,8 @@ import {
   CreateCampListOperation,
   CreateCampOperation,
   ListOperation,
-} from "./campOperations";
-import { ItemState } from "./item";
+} from "desert-thing-packing-list-common";
+import { ItemState } from "desert-thing-packing-list-common";
 
 export class User {
   constructor(public name: string, public camps: Camp[] = []) {}
@@ -19,47 +19,47 @@ function generateId() {
   return uuid.generate();
 }
 
-function createOperation(campId: string): CampOperationBase {
+function createOperation(): CampOperationBase {
   return {
     id: generateId(),
-    timestamp: Date.now(),
-    campId,
+    timestamp: Date.now()
   };
 }
 
-function createListOperation(campId: string, listId: string): ListOperation {
+function createListOperation(listId: string): ListOperation {
   return {
-    ...createOperation(campId),
+    ...createOperation(),
     listId,
   };
 }
 
-export function createCamp(name: string): CreateCampOperation {
+export function createCamp(name: string): {campId: string, op: CreateCampOperation} {
   return {
-    ...createOperation(generateId()),
-    type: "CREATE_CAMP",
-    name,
+    campId: generateId(),
+    op: {
+      ...createOperation(),
+      type: "CREATE_CAMP",
+      name,
+    },
   };
 }
 
 export function createList(
-  campId: string,
   name: string
 ): CreateCampListOperation {
   return {
-    ...createListOperation(campId, generateId()),
+    ...createListOperation(generateId()),
     type: "CREATE_CAMP_LIST",
     name,
   };
 }
 
 export function createItem(
-  campId: string,
   listId: string,
   name: string
 ): CreateCampItemOperation {
   return {
-    ...createListOperation(campId, listId),
+    ...createListOperation(listId),
     type: "CREATE_CAMP_ITEM",
     itemId: generateId(),
     name,
@@ -67,13 +67,12 @@ export function createItem(
 }
 
 export function changeItemState(
-  campId: string,
   listId: string,
   itemIds: string[],
   state: ItemState
 ): ChangeCampItemStateOperation {
   return {
-    ...createListOperation(campId, listId),
+    ...createListOperation(listId),
     type: "CHANGE_CAMP_ITEM_STATE",
     itemIds,
     state,
@@ -81,13 +80,12 @@ export function changeItemState(
 }
 
 export function changeItemDeleted(
-  campId: string,
   listId: string,
   itemIds: string[],
   deleted: boolean
 ): ChangeCampItemDeletedOperation {
   return {
-    ...createListOperation(campId, listId),
+    ...createListOperation(listId),
     type: "CHANGE_CAMP_ITEM_DELETED",
     itemIds,
     deleted,

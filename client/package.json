@@ -1,5 +1,5 @@
 {
-  "name": "packing-list-demo",
+  "name": "desert-thing-packing-list-web",
   "version": "0.1.0",
   "private": true,
   "homepage": ".",
@@ -17,6 +17,7 @@
     "@types/react": "^16.9.51",
     "@types/react-dom": "^16.9.8",
     "@types/react-redux": "^7.1.9",
+    "desert-thing-packing-list-common": "file:../common",
     "emotion": "^9.2.12",
     "graphql": "^14.4.2",
     "lodash": "^4.17.20",

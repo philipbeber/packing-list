@@ -36,7 +36,7 @@ const CreateCamp: React.FC<CreateCampProps> = (props) => {
   const handleCreate = () => {
     campsDispatch({
       type: "USER_OPERATION",
-      payload: createCamp(campName),
+      ...createCamp(campName),
     });
     setCampName("");
     onClose();

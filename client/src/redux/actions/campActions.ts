@@ -5,7 +5,7 @@ import {
   Item,
   ItemState,
   List,
-} from "../../model";
+} from "desert-thing-packing-list-common";
 
 export interface IOpenCampAction {
   readonly type: "OPEN_CAMP";
@@ -18,7 +18,8 @@ export interface ICloseCampAction {
 
 export interface IUserOperationAction {
   readonly type: "USER_OPERATION";
-  payload: CampOperation;
+  campId: string;
+  op: CampOperation;
 }
 
 export interface IOpenCampListAction {

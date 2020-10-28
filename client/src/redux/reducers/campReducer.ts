@@ -1,4 +1,4 @@
-import { applyOperationToCamp, Camp, CampOperation } from "../../model";
+import { applyOperationToCamp, Camp, CampOperation } from "desert-thing-packing-list-common";
 import { CampActions } from "../actions/campActions";
 
 interface CampState {
@@ -42,17 +42,17 @@ const campReducer = (
     }
     case "USER_OPERATION": {
       // I.e. an operation that will also be queued and sent to the server
-      const operation = action.payload;
+      const operation = action.op;
       if (operation.type === "CREATE_CAMP") {
-        const newCamp = new Camp(operation.campId, operation.name);
+        const newCamp = new Camp(action.campId, operation.name);
         return {
           ...state,
-          selectedCampId: operation.campId,
+          selectedCampId: action.campId,
           camps: [...state.camps, newCamp],
           pendingOperations: [...state.pendingOperations, operation],
         };
       }
-      const camp = state.camps.find((c) => c.id === operation.campId);
+      const camp = state.camps.find((c) => c.id === action.campId);
       if (!camp) {
         return state;
       }

@@ -24,9 +24,9 @@ import { CampActions } from "../redux/actions/campActions";
 import {
   changeItemDeleted,
   changeItemState,
-  createItem,
-  ItemState,
+  createItem
 } from "../model";
+import { ItemState } from "desert-thing-packing-list-common";
 import { createSelector } from "reselect";
 import { selectedCampSelector, selectedListSelector } from "../redux/selectors";
 
@@ -98,7 +98,8 @@ const CampListPage: React.FC = () => {
     }
     campDispatch({
       type: "USER_OPERATION",
-      payload: createItem(camp.id, list.id, newItemName),
+      campId: camp.id,
+      op: createItem(list.id, newItemName),
     });
     setNewItemName("");
   };
@@ -121,7 +122,8 @@ const CampListPage: React.FC = () => {
     if (selectedItems.length) {
       campDispatch({
         type: "USER_OPERATION",
-        payload: changeItemState(camp.id, list.id, selectedItems, itemState),
+        campId: camp.id,
+        op: changeItemState(list.id, selectedItems, itemState),
       });
     }
     setSelectedItems([]);
@@ -132,7 +134,8 @@ const CampListPage: React.FC = () => {
     if (selectedItems.length) {
       campDispatch({
         type: "USER_OPERATION",
-        payload: changeItemDeleted(camp.id, list.id, selectedItems, true),
+        campId: camp.id,
+        op: changeItemDeleted(list.id, selectedItems, true),
       });
     }
     setSelectedItems([]);
@@ -301,8 +304,8 @@ const CampListPage: React.FC = () => {
                 onChange={(event) =>
                   campDispatch({
                     type: "USER_OPERATION",
-                    payload: changeItemState(
-                      camp.id,
+                    campId: camp.id,
+                    op: changeItemState(
                       list.id,
                       [item.id],
                       event.target.value as ItemState

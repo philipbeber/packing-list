@@ -1,5 +1,5 @@
 import { Collection, MongoClient } from "mongodb";
-import { Camp, CampOperation, List } from "./common";
+import { Camp, CampOperation, List } from "desert-thing-packing-list-common";
 import { UserWithPassword } from "./user";
 
 interface DbUser {

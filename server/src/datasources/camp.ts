@@ -2,7 +2,7 @@ import { DataSource } from "apollo-datasource";
 import { AuthenticationError } from "apollo-server";
 import { ExpressContext } from "apollo-server-express/dist/ApolloServer";
 import { MutationSynchronizeArgs, Operation, OperationInput } from "../generated/graphql";
-import { CampOperation, ChangeCampItemDeletedOperation, ChangeCampItemStateOperation, ListOperation } from "../model/common";
+import { CampOperation, ChangeCampItemDeletedOperation, ChangeCampItemStateOperation, ListOperation } from "desert-thing-packing-list-common";
 import { Store } from "../model/store";
 
 export class CampAPI extends DataSource<ExpressContext> {

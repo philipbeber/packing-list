@@ -1,5 +1,3 @@
-import { Camp } from "../../model";
-
 export interface ICreateCampAction {
   readonly type: "CREATE_CAMP";
   payload: {

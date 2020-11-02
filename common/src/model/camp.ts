@@ -2,18 +2,27 @@ import { CampOperation } from "./campOperations";
 import { Item } from "./item";
 import { List } from "./list";
 
-export class Camp {
-  constructor(
-    public readonly id: string,
-    public readonly name: string,
-    public readonly lists: List[] = []
-  ) {}
+export interface Camp {
+  readonly id: string;
+  readonly name: string;
+  readonly lists: List[];
+  readonly revision: number;
 }
 
-export function applyOperationToCamp(
-  camp: Camp,
+export function applyOperationsToCamp<C extends Camp>(
+  camp: C,
+  operations: CampOperation[]
+): C {
+  operations.forEach(op => {
+    camp = applyOperationToCamp(camp, op);
+  });
+  return camp;
+}
+
+export function applyOperationToCamp<C extends Camp>(
+  camp: C,
   operation: CampOperation
-): Camp {
+): C {
   switch (operation.type) {
     case "CREATE_CAMP_LIST": {
       return {
@@ -30,11 +39,10 @@ export function applyOperationToCamp(
         ...list.items,
         new Item(operation.itemId, operation.name),
       ]);
-      return new Camp(
-        camp.id,
-        camp.name,
-        camp.lists.map((l) => (l === list ? newList : l))
-      );
+      return {
+        ...camp,
+        lists: camp.lists.map((l) => (l === list ? newList : l))
+      };
     }
     case "CHANGE_CAMP_ITEM_STATE": {
       const pl = operation;
@@ -58,12 +66,12 @@ export function applyOperationToCamp(
   }
 }
 
-function transformItems(
-  camp: Camp,
+function transformItems<C extends Camp>(
+  camp: C,
   listId: string,
   itemIds: string[],
   transform: (item: Item) => Item
-): Camp {
+): C {
   const list = camp?.lists.find((l) => l.id === listId);
   if (!list) {
     return camp;
@@ -84,9 +92,8 @@ function transformItems(
     return camp;
   }
   const newList = new List(list.id, list.name, newItems);
-  return new Camp(
-    camp.id,
-    camp.name,
-    camp.lists.map((l) => (l === list ? newList : l))
-  );
+  return {
+    ...camp,
+    lists: camp.lists.map((l) => (l === list ? newList : l))
+  };
 }

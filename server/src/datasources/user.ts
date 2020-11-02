@@ -2,6 +2,7 @@ import { DataSource, DataSourceConfig } from "apollo-datasource";
 import { AuthenticationError } from "apollo-server";
 import { ExpressContext } from "apollo-server-express/dist/ApolloServer";
 import { compare, hash } from "bcrypt";
+import { Camp } from "desert-thing-packing-list-common";
 import { LoginResponse, User } from "../generated/graphql";
 import { makeToken } from "../model/authToken";
 import { Store } from "../model/store";
@@ -43,13 +44,18 @@ export class UserAPI extends DataSource<MyContext> {
       // console.log(await hash(password, saltRounds));
       throw new AuthenticationError("Incorrect password");
     }
+    const camps = (
+      await Promise.all(user.camps.map((campId) => this.store.getCamp(campId)))
+    ).filter((camp) => !!camp);
+    camps.forEach(c=>console.log(c));
     return {
       token: makeToken({ userId: user.id }),
       user: {
         id: user.id,
         username: user.username,
-        name: user.name,
+        name: user.name
       },
+      camps: camps as Camp[]
     };
   }
 }

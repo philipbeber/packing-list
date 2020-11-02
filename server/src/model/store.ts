@@ -1,20 +1,24 @@
-import { Collection, MongoClient } from "mongodb";
+import { Collection, MongoClient, ObjectID } from "mongodb";
 import { Camp, CampOperation, List } from "desert-thing-packing-list-common";
 import { UserWithPassword } from "./user";
 
 interface DbUser {
-  _id: string;
+  _id: ObjectID;
   username: string;
   name: string;
   password: string;
   superuser?: boolean;
+  camps: ObjectID[];
 }
 
 export interface DbCamp {
-  _id: string;
   name: string;
   lists: List[];
   opCount: number;
+  ops: CampOperation[];
+}
+
+export interface CampWithOps extends Camp {
   ops: CampOperation[];
 }
 
@@ -46,9 +50,9 @@ export class Store {
         })
         .then(() => {
           this.camps = this.client
-          .db("desert-thing-packing-list")
-          .collection("camps");
-      })
+            .db("desert-thing-packing-list")
+            .collection("camps");
+        })
         .catch((err) => {
           console.error(err);
           process.exit(1);
@@ -65,7 +69,7 @@ export class Store {
     }
     const user = await this.users.findOne(
       { username },
-      { projection: { _id: 1, name: 1, username: 1, password: 1 } }
+      { projection: { _id: 1, name: 1, username: 1, password: 1, camps: 1 } }
     );
     if (!user) {
       return undefined;
@@ -73,26 +77,131 @@ export class Store {
     const { _id, ...removeId } = user;
     return {
       ...removeId,
-      id: user._id,
+      id: user._id.toHexString(),
+      camps: user.camps ? user.camps.map((c) => c.toHexString()) : [],
     };
   }
 
-  async getCamp(id: string, nextOp: number): Promise<DbCamp | undefined> {
+  async createCamp(newCamp: {
+    name: string;
+    lists: List[];
+    ops: CampOperation[];
+    opCount: number;
+  }): Promise<string> {
+    if (!this.camps) {
+      throw Error("camps is null");
+    }
+    const result = await this.camps.insertOne(newCamp);
+    return result.insertedId.toHexString();
+  }
+
+  async addCampToUser(userId: string, campId: string): Promise<void> {
+    if (!this.users) {
+      throw Error("users is null");
+    }
+    await this.users.updateOne(
+      { _id: new ObjectID(userId) },
+      { $push: { camps: new ObjectID(campId) } }
+    );
+  }
+
+  async getCamp(id: string): Promise<Camp | undefined> {
+    if (!this.camps) {
+      throw Error("Camps is null");
+    }
+    console.log("Looking for ", id);
+    const camp = await this.camps.findOne(
+      { _id: new ObjectID(id) },
+      {
+        projection: {
+          name: 1,
+          lists: 1,
+          opCount: 1,
+        },
+      }
+    );
+    console.log("Found ", camp);
+    return camp
+      ? {
+          id,
+          name: camp.name,
+          lists: camp.lists,
+          revision: camp.opCount,
+        }
+      : undefined;
+  }
+
+  async getCampOps(
+    id: string,
+    nextOp: number
+  ): Promise<CampOperation[] | undefined> {
     if (!this.camps) {
       throw Error("Camps is null");
     }
     const camp = await this.camps.findOne(
-      { _id: id },
+      { _id: new ObjectID(id) },
       {
         projection: {
           ops: { $slice: [nextOp, 1000000000] },
-          opCount: 1,
-          name: 1,
-          lists: 1,
         },
       }
     );
-    return camp || undefined;
+    return camp?.ops || undefined;
+  }
+
+  async getCampWithOps(
+    id: string,
+    nextOp: number
+  ): Promise<[Camp | undefined, CampOperation[]]> {
+    if (!this.camps) {
+      throw Error("Camps is null");
+    }
+    const camp = await this.camps.findOne(
+      { _id: new ObjectID(id) },
+      {
+        projection: {
+          name: 1,
+          lists: 1,
+          ops: { $slice: [nextOp, 1000000000] },
+          opCount: 1,
+        },
+      }
+    );
+    const ops = camp ? camp.ops : [];
+    return [
+      camp
+        ? {
+            id,
+            name: camp.name,
+            lists: camp.lists,
+            revision: camp.opCount,
+          }
+        : undefined,
+      ops,
+    ];
+  }
+
+  async writeCamp(camp: Camp, newOps: CampOperation[], lastServerOp: number) {
+    if (!this.camps) {
+      throw Error("Camps is null");
+    }
+    const result = await this.camps.updateOne(
+      {
+        _id: new ObjectID(camp.id),
+        opCount: lastServerOp,
+      },
+      {
+        $set: {
+          name: camp.name,
+          lists: camp.lists,
+          opCount: lastServerOp + newOps.length,
+        },
+        $push: {
+          ops: { $each: newOps },
+        },
+      }
+    );
+    return result.modifiedCount > 0;
   }
 }
 

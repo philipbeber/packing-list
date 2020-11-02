@@ -3,4 +3,5 @@ export interface UserWithPassword {
     username: string;
     name: string;
     password: string;
+    camps: string[];
   }

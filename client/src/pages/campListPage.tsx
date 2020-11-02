@@ -262,6 +262,7 @@ const CampListPage: React.FC = () => {
               keepMounted
               open={Boolean(setToAnchorEl)}
               onClose={() => setSetToAnchorEl(null)}
+              getContentAnchorEl={null}
               anchorOrigin={{
                 vertical: "bottom",
                 horizontal: "left",

@@ -1,21 +1,43 @@
 import { applyOperationToCamp, Camp, CampOperation } from "desert-thing-packing-list-common";
+import { applyUserOperation, CampManager, connectCamp, createNewCamp, synchronizeCamp, syncResponse } from "../../model/campManager";
 import { CampActions } from "../actions/campActions";
 
 interface CampState {
   selectedCampId?: string;
   selectedListId?: string;
-  camps: Camp[];
-  pendingOperations: CampOperation[];
+  campManagers: CampManager[];
 }
 export const initialState: CampState = {
-  camps: [],
-  pendingOperations: [],
+  campManagers: []
 };
 const campReducer = (
-  state: CampState = initialState,
+  state: CampState = initialState,  
   action: CampActions
 ): CampState => {
   switch (action.type) {
+    case "SYNCHRONIZE": {
+      return {
+        ...state,
+        campManagers: state.campManagers.map(cm => synchronizeCamp(cm))
+      }
+    }
+    case "SYNCHRONIZE_RESPONSE": {
+      const oldCM = state.campManagers.find(cm => cm.campId === action.campId);
+      if (!oldCM) {
+        return state;
+      }
+      const newCM = syncResponse(oldCM, action.operationCount, action.result);
+      return {
+        ...state,
+        selectedCampId:
+          state.selectedCampId === oldCM.campId
+            ? newCM.campId
+            : state.selectedCampId,
+        campManagers: state.campManagers.map((cm) =>
+          cm.campId === oldCM.campId ? newCM : cm
+        ),
+      };
+    }
     case "OPEN_CAMP": {
       return {
         ...state,
@@ -44,27 +66,30 @@ const campReducer = (
       // I.e. an operation that will also be queued and sent to the server
       const operation = action.op;
       if (operation.type === "CREATE_CAMP") {
-        const newCamp = new Camp(action.campId, operation.name);
+        const newCampMgr = createNewCamp(action.campId, operation);
         return {
           ...state,
           selectedCampId: action.campId,
-          camps: [...state.camps, newCamp],
-          pendingOperations: [...state.pendingOperations, operation],
+          campManagers: [...state.campManagers, newCampMgr]
         };
       }
-      const camp = state.camps.find((c) => c.id === action.campId);
-      if (!camp) {
+      const campMgr = state.campManagers.find((c) => c.campId === action.campId);
+      if (!campMgr) {
         return state;
       }
-      const newCamp = applyOperationToCamp(camp, operation);
+      const newCamp = applyUserOperation(campMgr, operation);
       return {
         ...state,
-        camps: state.camps.map((c) => (c.id === camp.id ? newCamp : c)),
-        pendingOperations: [...state.pendingOperations, operation],
+        campManagers: state.campManagers.map((c) => (c.campId === action.campId ? newCamp : c))
       };
     }
-    case "CLEAR_CAMP_DATA":
-      // Just used for testing. Will remove this
+    case "LOGIN":
+      return {
+        campManagers: action.camps.map(camp => connectCamp(camp)),
+        selectedCampId: undefined,
+        selectedListId: undefined
+      }
+    case "LOGOUT":
       return initialState;
     default:
       return state;

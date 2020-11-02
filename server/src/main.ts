@@ -15,9 +15,11 @@ import { dataSources } from "./datasources";
 const context: ({ req }: ExpressContext) => Promise<MyContext|undefined> = async ({ req }: ExpressContext) => {
   // simple auth check on every request
   const auth = req.headers && req.headers.authorization;
-  if (auth && auth.startsWith("Bearer: ")) {
-    const token = auth.slice("Bearer: ".length);
-    return decryptToken<MyContext>(token);
+  if (auth && auth.startsWith("Bearer ")) {
+    const token = auth.slice("Bearer ".length);
+    const ctx = decryptToken<MyContext>(token);
+    console.log(ctx);
+    return ctx;
   }
   return {};
 };

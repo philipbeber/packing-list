@@ -1,23 +1,25 @@
 import { AuthenticationError } from "apollo-server";
 import { MyDataSources as DataSources } from "./datasources";
 import { Resolvers } from "./generated/graphql";
+import * as GraphQLDate from "graphql-date";
 
 type Context = { dataSources: DataSources };
 
 export const resolvers: Resolvers<Context> = {
+  Date: GraphQLDate,
+  
   Query: {
-    me: async (parent, args, { dataSources }) => ({
-      id: "12345",
-      username: "bob@happycamping.com",
-      name: "Bob (Ranger Bilbo)",
-    }),
+    async me(parent, args, { dataSources }) {
+      throw Error("Not implemented");
+    },
   },
   Mutation: {
-    synchronize: async (
+    async synchronize(
       parent,
       args,
       { dataSources }
-    ) => {
+    ) {
+      console.log(args);
       return dataSources.campAPI.syncCamp(args);
     },
     async login(

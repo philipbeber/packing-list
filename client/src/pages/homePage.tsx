@@ -20,10 +20,8 @@ import { AppState } from "../redux/reducers/rootReducer";
 import CreateCamp from "../components/createCamp";
 import { CampActions } from "../redux/actions/campActions";
 import { createSelector } from "reselect";
-import { useQuery } from "@apollo/client";
-import { IS_LOGGED_IN } from "../apollo";
 import Login from "../components/login";
-import { logout } from "../apollo/login";
+import { UserActions } from "../redux/actions/userActions";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -41,25 +39,26 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const campListSelector = createSelector(
-  (state: AppState) => state.camp.camps,
-  (camps) =>
-    camps.map((camp) => ({
-      id: camp.id,
-      name: camp.name,
+  (state: AppState) => state.camp.campManagers,
+  (campManagers) =>
+    campManagers.map((campManager) => ({
+      id: campManager.campId,
+      name: campManager.current.name,
     }))
 );
 
 const HomePage: React.FC = () => {
   const classes = useStyles();
   const campList = useSelector((state: AppState) => campListSelector(state));
-  const { data } = useQuery(IS_LOGGED_IN);
-  const isLoggedIn = data.isLoggedIn;
+  const isLoggedIn = useSelector((state: AppState) => !!state.user.token);
   const [createCampOpen, setCreateCampOpen] = React.useState(false);
   const [loginOpen, setLoginOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const campDispatch = useDispatch<Dispatch<CampActions>>();
-  if (isLoggedIn && loginOpen) {
-    setLoginOpen(false);
+  const userDispatch = useDispatch<Dispatch<UserActions>>();
+
+  const handleSynchronize = () => {
+    campDispatch({ type: "SYNCHRONIZE" });
   }
 
   return (
@@ -112,14 +111,14 @@ const HomePage: React.FC = () => {
             <MenuItem disabled>Join a camp</MenuItem>
             <MenuItem disabled>Create a private list</MenuItem>
             {isLoggedIn ? (
-              <MenuItem onClick={() => {}}>Synchronize</MenuItem>
+              <MenuItem onClick={handleSynchronize}>Synchronize</MenuItem>
             ) : (
               ""
             )}
             {isLoggedIn ? (
               <MenuItem
                 onClick={() => {
-                  logout();
+                  userDispatch({type: "LOGOUT"})
                   setAnchorEl(null);
                 }}
               >
@@ -194,18 +193,6 @@ const HomePage: React.FC = () => {
               Private lists
             </Typography>
             <Typography variant="subtitle1">Coming soon</Typography>
-          </Box>
-          <Box my={2}>
-            <Typography variant="h4" component="h1">
-              Test area
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => campDispatch({ type: "CLEAR_CAMP_DATA" })}
-            >
-              Clear camp data
-            </Button>
           </Box>
         </Fragment>
       )}

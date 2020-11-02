@@ -2,10 +2,10 @@ import { createSelector } from "reselect";
 import { AppState } from "../reducers/rootReducer";
 
 export const selectedCampSelector = createSelector(
-  (state: AppState) => state.camp.camps,
+  (state: AppState) => state.camp.campManagers,
   (state: AppState) => state.camp.selectedCampId,
   (camps, selectedCampId) => {
-    return camps.find((c) => c.id === selectedCampId);
+    return camps.find((c) => c.campId === selectedCampId)?.current;
   }
 );
 

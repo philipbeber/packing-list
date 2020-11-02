@@ -1,12 +1,26 @@
-import { DataSource } from "apollo-datasource";
+import { DataSource, DataSourceConfig } from "apollo-datasource";
 import { AuthenticationError } from "apollo-server";
 import { ExpressContext } from "apollo-server-express/dist/ApolloServer";
-import { MutationSynchronizeArgs, Operation, OperationInput } from "../generated/graphql";
-import { CampOperation, ChangeCampItemDeletedOperation, ChangeCampItemStateOperation, ListOperation } from "desert-thing-packing-list-common";
-import { Store } from "../model/store";
+import {
+  MutationSynchronizeArgs,
+  Operation,
+  OperationInput,
+  SynchronizeResponse,
+  SyncStatus,
+} from "../generated/graphql";
+import {
+  applyOperationsToCamp,
+  Camp,
+  CampOperation,
+  ChangeCampItemDeletedOperation,
+  ChangeCampItemStateOperation,
+  ListOperation,
+} from "desert-thing-packing-list-common";
+import { DbCamp, Store } from "../model/store";
+import { MyContext } from "./user";
 
-export class CampAPI extends DataSource<ExpressContext> {
-  private context: any;
+export class CampAPI extends DataSource<MyContext> {
+  private context?: MyContext;
   constructor(private store: Store) {
     super();
   }
@@ -17,7 +31,7 @@ export class CampAPI extends DataSource<ExpressContext> {
    * like caches and context. We'll assign this.context to the request context
    * here, so we can know about the user making requests
    */
-  async initialize(config: any) {
+  async initialize(config: DataSourceConfig<MyContext>) {
     this.context = config.context;
     await this.store.initialize();
   }
@@ -27,35 +41,110 @@ export class CampAPI extends DataSource<ExpressContext> {
     opIndex,
     lastOp,
     newOps,
-  }: MutationSynchronizeArgs): Promise<Operation[]> {
-    if (!this.context.userId) {
+  }: MutationSynchronizeArgs): Promise<SynchronizeResponse> {
+    let clientOps = newOps as CampOperation[] | undefined;
+    if (!this.context?.userId) {
       throw new AuthenticationError("Invalid token");
     }
-    if (newOps && newOps.length && newOps[0].type == "CREATE_CAMP") {
-      return this.createCamp(newOps);
+    if (clientOps && clientOps.length && clientOps[0].type == "CREATE_CAMP") {
+      return this.createCamp(clientOps);
     }
     if (opIndex < 1 || !campId) {
       throw new Error("Invalid arguments");
     }
-    const camp = await this.store.getCamp(campId, opIndex);
-    if (!camp) {
-      throw new Error("Camp not found");
+    if (!clientOps?.length) {
+      const serverOps = await this.store.getCampOps(campId, opIndex);
+      if (!serverOps) {
+        throw new Error("Camp not found");
+      }
+      return serverOps.length
+        ? { status: SyncStatus.NEED_UPDATE, updatedOps: serverOps }
+        : { status: SyncStatus.ALL_GOOD };
     }
-    if (!newOps?.length) {
-      return camp.ops;
+    const serverOps = [] as CampOperation[];
+    while (true) {
+      const [oldCamp, newServerOps] = await this.store.getCampWithOps(
+        campId,
+        opIndex
+      );
+      if (!oldCamp) {
+        throw new Error("Camp not found");
+      }
+      serverOps.push(...newServerOps);
+      opIndex += newServerOps.length;
+      clientOps = this.transformOps(clientOps, newServerOps);
+      if (clientOps.length === 0) {
+        return serverOps.length
+          ? { status: SyncStatus.NEED_UPDATE, updatedOps: serverOps }
+          : { status: SyncStatus.ALL_GOOD };
+      }
+      const newCamp = applyOperationsToCamp(oldCamp, clientOps);
+      const success = this.store.writeCamp(newCamp, clientOps, opIndex);
+      if (success) {
+        return serverOps.length
+          ? {
+              status: SyncStatus.NEED_UPDATE,
+              updatedOps: [...serverOps, ...clientOps],
+            }
+          : { status: SyncStatus.ALL_GOOD };
+      }
     }
-    const clientOps = newOps as CampOperation[];
-    this.transformOps(clientOps, camp.ops);
-    return [];
   }
 
-  transformOps(clientOps: CampOperation[], serverOps: CampOperation[]) {
+  async createCamp(ops: CampOperation[]): Promise<SynchronizeResponse> {
+    if (!this.context?.userId) {
+      throw new AuthenticationError("Invalid token");
+    }
+
+    const createOp = ops[0];
+    if (createOp.type !== "CREATE_CAMP" || !createOp.name) {
+      throw Error("No name");
+    }
+    let camp: Camp = {
+      id: "",
+      name: createOp.name,
+      lists: [],
+      revision: 1,
+    };
+    if (ops.length > 1) {
+      camp = applyOperationsToCamp(camp, ops.slice(1) as CampOperation[]);
+    }
+    const campId = await this.store.createCamp({
+      name: camp.name,
+      lists: camp.lists,
+      ops: ops,
+      opCount: ops.length,
+    });
+
+    await this.store.addCampToUser(this.context.userId, campId);
+
+    return {
+      status: SyncStatus.ALL_GOOD,
+      campId,
+    };
+  }
+
+  transformOps(
+    clientOps: CampOperation[],
+    serverOps: CampOperation[]
+  ): CampOperation[] {
+    let newOps = clientOps;
+    let changed = false;
     serverOps.forEach((serverOp) => {
-      for (let index = 0; index < clientOps.length; index++) {
-        const clientOp = clientOps[index];
+      for (let index = 0; index < newOps.length; index++) {
+        const clientOp = newOps[index];
         const [newClientOp, newServerOp] = this.transformOp(clientOp, serverOp);
         if (newClientOp !== clientOp) {
-          serverOps[index] = newClientOp;
+          if (!changed) {
+            newOps = newOps.slice(0);
+            changed = true;
+          }
+          if (newClientOp.type === "IDENTITY") {
+            newOps.splice(index, 1);
+            index--;
+          } else {
+            newOps[index] = newClientOp;
+          }
         }
         if (newServerOp.type === "IDENTITY") {
           break;
@@ -63,6 +152,7 @@ export class CampAPI extends DataSource<ExpressContext> {
         serverOp = newServerOp;
       }
     });
+    return newOps;
   }
 
   transformOp(
@@ -102,7 +192,9 @@ export class CampAPI extends DataSource<ExpressContext> {
     if (clientOp.listId !== serverOp.listId) {
       return [clientOp, serverOp];
     }
-    const newItemIds = clientOp.itemIds.filter(id => serverOp.itemIds.indexOf(id) < 0);
+    const newItemIds = clientOp.itemIds.filter(
+      (id) => serverOp.itemIds.indexOf(id) < 0
+    );
     if (newItemIds.length === clientOp.itemIds.length) {
       return [clientOp, serverOp];
     }
@@ -111,16 +203,8 @@ export class CampAPI extends DataSource<ExpressContext> {
     }
     const newClientOp = {
       ...clientOp,
-      itemIds: newItemIds
-    }
+      itemIds: newItemIds,
+    };
     return [newClientOp, serverOp];
-  }
-
-  async createCamp(ops: OperationInput[]) {
-    return ops.map((op) => ({
-      type: op.type,
-      id: op.id,
-      timestamp: op.timestamp,
-    }));
   }
 }

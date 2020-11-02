@@ -3,7 +3,10 @@ import { createStore, Store } from "redux";
 import rootReducer, { AppState } from "../reducers/rootReducer";
 import { devToolsEnhancer } from "redux-devtools-extension";
 import { AppActions } from "../actions";
-const version = "0.2";
+import { resetCampManager } from "../../model/campManager";
+
+const version = "0.3";
+
 interface FrozenState {
   version: string;
   state: AppState;
@@ -19,11 +22,11 @@ export default store;
 store.subscribe(
   _.throttle(() => {
     try {
-      const frozeState: FrozenState = {
+      const frozenState: FrozenState = {
         version,
         state: store.getState(),
       };
-      const serializedState = JSON.stringify(frozeState);
+      const serializedState = JSON.stringify(frozenState);
       localStorage.setItem("state", serializedState);
     } catch {
       // ignore write errors
@@ -35,9 +38,10 @@ function loadState() {
   try {
     const serializedState = localStorage.getItem("state");
     if (serializedState) {
-      const frozeState = JSON.parse(serializedState) as FrozenState;
-      if (frozeState.version === version) {
-        return frozeState.state;
+      const frozenState = JSON.parse(serializedState) as FrozenState;
+      if (frozenState.version === version) {
+        frozenState.state.camp.campManagers = frozenState.state.camp.campManagers.map(resetCampManager);
+        return frozenState.state;
       }
     }
   } catch (err) {

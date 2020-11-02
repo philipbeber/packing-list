@@ -3,9 +3,10 @@ import {
   NormalizedCacheObject,
   gql,
   createHttpLink,
+  InMemoryCache,
 } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
-import { cache, loggedInVar } from "./cache";
+import store from "../redux/store";
 
 export const typeDefs = gql`
   extend type Query {
@@ -19,7 +20,7 @@ const httpLink = createHttpLink({
 
 const authLink = setContext((_, { headers }) => {
   // get the authentication token from local storage if it exists
-  const token = loggedInVar();
+  const token = store.getState().user.token;
   const auth = token ? { authorization: `Bearer ${token}` } : {};
   // return the headers to the context so httpLink can read them
   return {
@@ -33,7 +34,7 @@ const authLink = setContext((_, { headers }) => {
 // Set up our apollo-client to point at the server we created
 // this can be local or a remote endpoint
 export const client: ApolloClient<NormalizedCacheObject> = new ApolloClient({
-  cache,
+  cache: new InMemoryCache(),
   link: authLink.concat(httpLink),
   headers: {
     "client-name": "Desert Festival Packing List [web]",
@@ -42,9 +43,3 @@ export const client: ApolloClient<NormalizedCacheObject> = new ApolloClient({
   typeDefs,
   resolvers: {},
 });
-
-export const IS_LOGGED_IN = gql`
-  query IsUserLoggedIn {
-    isLoggedIn @client
-  }
-`;

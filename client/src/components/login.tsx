@@ -1,4 +1,4 @@
-import React, { createRef } from "react";
+import React, { createRef, Dispatch } from "react";
 import {
   Box,
   Button,
@@ -10,6 +10,9 @@ import {
   Typography,
 } from "@material-ui/core";
 import { useLoginMutation } from "../apollo/login";
+import { useDispatch } from "react-redux";
+import { UserActions } from "../redux/actions/userActions";
+import { Camp } from "desert-thing-packing-list-common";
 
 const useStyles = makeStyles((theme) => ({
   textfield: {
@@ -35,13 +38,24 @@ const Login: React.FC<LoginProps> = (props) => {
 
   const [login, { loading, error }] = useLoginMutation();
 
+  const userDispatch = useDispatch<Dispatch<UserActions>>()
+  
   if (!open && (email || password)) {
     setEmail("");
     setPassword("");
   }
 
-  const handleLogin = () => {
-    login({ variables: { email, password } });
+  const handleLogin = async () => {
+    const { data } = await login({ variables: { email, password } });
+    if (data?.login) {
+      onClose();
+      userDispatch({
+        type: "LOGIN",
+        token: data.login.token,
+        user: data.login.user,
+        camps: data.login.camps as Camp[],
+      });
+    }
   };
 
   return (
@@ -113,7 +127,7 @@ const Login: React.FC<LoginProps> = (props) => {
                 Cancel
               </Button>
             </Grid>
-            <Grid xs="auto">
+            <Grid item xs="auto">
               <Typography variant="subtitle1">{error?.message}</Typography>
               <Typography variant="subtitle1">
                 {loading ? "Working..." : ""}

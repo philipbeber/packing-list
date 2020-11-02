@@ -1,17 +1,11 @@
-import { gql, ApolloClient } from "@apollo/client";
+import { gql } from "@apollo/client";
+import { SyncStatus } from "../__generated__/globalTypes";
 import {
-  OperationInput,
-  ItemState as WireItemState,
-} from "../../__generated__/globalTypes";
-import {
-  CampOperation,
-  ChangeCampItemStateOperation,
-  ItemState,
+  CampOperation
 } from "desert-thing-packing-list-common";
-import { LoggedInUser } from "../model/loggedInUser";
-import { loggedInVar } from "./cache";
 import { client } from "./client";
 import { Synchronize, SynchronizeVariables } from "./__generated__/Synchronize";
+import { OPERATION_FRAGMENT } from "./fragments";
 
 export const SYNCHRONIZE = gql`
   mutation Synchronize(
@@ -26,17 +20,14 @@ export const SYNCHRONIZE = gql`
       lastOp: $lastOp
       newOps: $newOps
     ) {
-      type
-      id
-      timestamp
+      status
+      updatedOps {
+        ...OperationFragment
+      }
       campId
-      listId
-      itemIds
-      name
-      state
-      deleted
     }
   }
+  ${OPERATION_FRAGMENT}
 `;
 
 export async function synchronize(
@@ -44,7 +35,7 @@ export async function synchronize(
   opIndex: number,
   lastOp?: string,
   newOps?: CampOperation[]
-) {
+): Promise<{status: SyncStatus, serverOps?: CampOperation[], campId?: string}> {
   const result = await client.mutate<Synchronize, SynchronizeVariables>({
     mutation: SYNCHRONIZE,
     variables: {
@@ -54,5 +45,19 @@ export async function synchronize(
       newOps,
     },
   });
-  console.log(result.data);
+  if (result.errors) {
+    result.errors.forEach(error => {
+      console.error(error);
+    });
+    return { status: SyncStatus.RETRY };
+  }
+  if (!result.data) {
+    console.error("No data");
+    return { status: SyncStatus.RETRY}
+  }
+  return {
+    status: result.data.synchronize.status,
+    serverOps: result.data.synchronize.updatedOps as CampOperation[],
+    campId: result.data.synchronize.campId || undefined
+  };
 }

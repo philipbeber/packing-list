@@ -1,6 +1,8 @@
 import { gql } from "apollo-server";
 
 export const typeDefs = gql`
+  scalar Date
+
   type Query {
     me: User
   }
@@ -11,7 +13,7 @@ export const typeDefs = gql`
       opIndex: Int!
       lastOp: ID
       newOps: [OperationInput!]
-    ): [Operation]
+    ): SynchronizeResponse!
     login(email: String, password: String): LoginResponse
   }
 
@@ -24,17 +26,31 @@ export const typeDefs = gql`
     message: String
   }
 
+  type SynchronizeResponse {
+    status: SyncStatus!
+    updatedOps: [Operation!]
+    campId: ID
+  }
+
+  enum SyncStatus {
+    ALL_GOOD
+    RETRY
+    NEED_UPDATE
+  }
+
   type LoginResponse {
     token: String!
     user: User!
+    camps: [Camp!]!
   }
 
   type Operation {
     type: String!
     id: ID!
-    timestamp: Int!
+    timestamp: Date!
     campId: ID
     listId: ID
+    itemId: ID
     itemIds: [ID!]
     name: String
     state: ItemState
@@ -44,8 +60,9 @@ export const typeDefs = gql`
   input OperationInput {
     type: String!
     id: ID!
-    timestamp: Int!
+    timestamp: Date!
     listId: ID
+    itemId: ID
     itemIds: [ID!]
     name: String
     state: ItemState
@@ -60,9 +77,10 @@ export const typeDefs = gql`
   type Camp {
     id: ID!
     name: String!
-    members: [Member]!
-    lists: [List]!
-    deleted: Boolean
+    #members: [Member!]!
+    lists: [List!]!
+    #deleted: Boolean
+    revision: Int!
   }
 
   type Member {
@@ -82,16 +100,17 @@ export const typeDefs = gql`
   type List {
     id: ID!
     name: String!
-    items: [Item]!
+    items: [Item!]!
     position: Float
   }
 
   type Item {
     id: ID!
     name: String!
-    assignedTo: [Int]
-    state: ItemState
+    assignedTo: [Int!]
+    state: ItemState!
     position: Float
+    deleted: Boolean!
   }
 
   enum ItemState {

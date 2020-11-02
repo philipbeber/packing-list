@@ -11,10 +11,6 @@ import {
 } from "desert-thing-packing-list-common";
 import { ItemState } from "desert-thing-packing-list-common";
 
-export class User {
-  constructor(public name: string, public camps: Camp[] = []) {}
-}
-
 function generateId() {
   return uuid.generate();
 }
@@ -22,7 +18,7 @@ function generateId() {
 function createOperation(): CampOperationBase {
   return {
     id: generateId(),
-    timestamp: Date.now()
+    timestamp: new Date().toJSON()
   };
 }
 

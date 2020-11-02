@@ -1,6 +1,6 @@
 import { gql, useMutation } from "@apollo/client";
 import { LoggedInUser } from "../model/loggedInUser";
-import { loggedInVar } from "./cache";
+import { CAMP_FRAGMENT } from "./fragments";
 import * as LoginTypes from "./__generated__/Login";
 
 export const LOGIN_USER = gql`
@@ -12,8 +12,12 @@ export const LOGIN_USER = gql`
         username
         name
       }
+      camps {
+        ...CampFragment
+      }
     }
   }
+  ${CAMP_FRAGMENT}
 `;
 
 const localStorageVarName = "me";
@@ -36,16 +40,6 @@ export function useLoginMutation() {
   return useMutation<LoginTypes.Login, LoginTypes.LoginVariables>(LOGIN_USER, {
     onCompleted({ login }) {
       console.log(login);
-      if (login && login.token && login.user) {
-        const user: LoggedInUser = {
-          token: login.token,
-          id: login.user.id,
-          name: login.user.name,
-          username: login.user.username,
-        };
-        localStorage.setItem(localStorageVarName, JSON.stringify(user));
-        loggedInVar(user);
-      }
     },
     onError(error) {
       console.log(error);
@@ -53,7 +47,3 @@ export function useLoginMutation() {
   });
 }
 
-export function logout() {
-  localStorage.removeItem(localStorageVarName);
-  loggedInVar(undefined);
-}

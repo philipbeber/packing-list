@@ -9,6 +9,7 @@ export type Scalars = {
   Boolean: boolean;
   Int: number;
   Float: number;
+  Date: any;
   /** The `Upload` scalar type represents a file upload. */
   Upload: any;
 };
@@ -22,9 +23,8 @@ export type Camp = {
   __typename?: 'Camp';
   id: Scalars['ID'];
   name: Scalars['String'];
-  members: Array<Maybe<Member>>;
-  lists: Array<Maybe<List>>;
-  deleted?: Maybe<Scalars['Boolean']>;
+  lists: Array<List>;
+  revision: Scalars['Int'];
 };
 
 export type CampUpdateResponse = {
@@ -33,13 +33,15 @@ export type CampUpdateResponse = {
   message?: Maybe<Scalars['String']>;
 };
 
+
 export type Item = {
   __typename?: 'Item';
   id: Scalars['ID'];
   name: Scalars['String'];
-  assignedTo?: Maybe<Array<Maybe<Scalars['Int']>>>;
-  state?: Maybe<ItemState>;
+  assignedTo?: Maybe<Array<Scalars['Int']>>;
+  state: ItemState;
   position?: Maybe<Scalars['Float']>;
+  deleted: Scalars['Boolean'];
 };
 
 export enum ItemState {
@@ -53,7 +55,7 @@ export type List = {
   __typename?: 'List';
   id: Scalars['ID'];
   name: Scalars['String'];
-  items: Array<Maybe<Item>>;
+  items: Array<Item>;
   position?: Maybe<Scalars['Float']>;
 };
 
@@ -61,6 +63,7 @@ export type LoginResponse = {
   __typename?: 'LoginResponse';
   token: Scalars['String'];
   user: User;
+  camps: Array<Camp>;
 };
 
 export type Member = {
@@ -74,7 +77,7 @@ export type Member = {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  synchronize?: Maybe<Array<Maybe<Operation>>>;
+  synchronize: SynchronizeResponse;
   login?: Maybe<LoginResponse>;
 };
 
@@ -96,9 +99,10 @@ export type Operation = {
   __typename?: 'Operation';
   type: Scalars['String'];
   id: Scalars['ID'];
-  timestamp: Scalars['Int'];
+  timestamp: Scalars['Date'];
   campId?: Maybe<Scalars['ID']>;
   listId?: Maybe<Scalars['ID']>;
+  itemId?: Maybe<Scalars['ID']>;
   itemIds?: Maybe<Array<Scalars['ID']>>;
   name?: Maybe<Scalars['String']>;
   state?: Maybe<ItemState>;
@@ -108,8 +112,9 @@ export type Operation = {
 export type OperationInput = {
   type: Scalars['String'];
   id: Scalars['ID'];
-  timestamp: Scalars['Int'];
+  timestamp: Scalars['Date'];
   listId?: Maybe<Scalars['ID']>;
+  itemId?: Maybe<Scalars['ID']>;
   itemIds?: Maybe<Array<Scalars['ID']>>;
   name?: Maybe<Scalars['String']>;
   state?: Maybe<ItemState>;
@@ -136,6 +141,19 @@ export type Subscription = {
 export type SubscriptionCampOperationAddedArgs = {
   campId: Scalars['ID'];
 };
+
+export type SynchronizeResponse = {
+  __typename?: 'SynchronizeResponse';
+  status: SyncStatus;
+  updatedOps?: Maybe<Array<Operation>>;
+  campId?: Maybe<Scalars['ID']>;
+};
+
+export enum SyncStatus {
+  ALL_GOOD = 'ALL_GOOD',
+  RETRY = 'RETRY',
+  NEED_UPDATE = 'NEED_UPDATE'
+}
 
 
 export type User = {
@@ -231,18 +249,21 @@ export type ResolversTypes = ResolversObject<{
   Mutation: ResolverTypeWrapper<{}>;
   Int: ResolverTypeWrapper<Scalars['Int']>;
   OperationInput: OperationInput;
+  Date: ResolverTypeWrapper<Scalars['Date']>;
   ItemState: ItemState;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
+  SynchronizeResponse: ResolverTypeWrapper<SynchronizeResponse>;
+  SyncStatus: SyncStatus;
   Operation: ResolverTypeWrapper<Operation>;
   LoginResponse: ResolverTypeWrapper<LoginResponse>;
-  Subscription: ResolverTypeWrapper<{}>;
-  SendOperationsResponse: ResolverTypeWrapper<SendOperationsResponse>;
-  CampUpdateResponse: ResolverTypeWrapper<CampUpdateResponse>;
   Camp: ResolverTypeWrapper<Camp>;
-  Member: ResolverTypeWrapper<Member>;
   List: ResolverTypeWrapper<List>;
   Item: ResolverTypeWrapper<Item>;
   Float: ResolverTypeWrapper<Scalars['Float']>;
+  Subscription: ResolverTypeWrapper<{}>;
+  SendOperationsResponse: ResolverTypeWrapper<SendOperationsResponse>;
+  CampUpdateResponse: ResolverTypeWrapper<CampUpdateResponse>;
+  Member: ResolverTypeWrapper<Member>;
   CacheControlScope: CacheControlScope;
   Upload: ResolverTypeWrapper<Scalars['Upload']>;
 }>;
@@ -256,26 +277,27 @@ export type ResolversParentTypes = ResolversObject<{
   Mutation: {};
   Int: Scalars['Int'];
   OperationInput: OperationInput;
+  Date: Scalars['Date'];
   Boolean: Scalars['Boolean'];
+  SynchronizeResponse: SynchronizeResponse;
   Operation: Operation;
   LoginResponse: LoginResponse;
-  Subscription: {};
-  SendOperationsResponse: SendOperationsResponse;
-  CampUpdateResponse: CampUpdateResponse;
   Camp: Camp;
-  Member: Member;
   List: List;
   Item: Item;
   Float: Scalars['Float'];
+  Subscription: {};
+  SendOperationsResponse: SendOperationsResponse;
+  CampUpdateResponse: CampUpdateResponse;
+  Member: Member;
   Upload: Scalars['Upload'];
 }>;
 
 export type CampResolvers<ContextType = any, ParentType extends ResolversParentTypes['Camp'] = ResolversParentTypes['Camp']> = ResolversObject<{
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  members?: Resolver<Array<Maybe<ResolversTypes['Member']>>, ParentType, ContextType>;
-  lists?: Resolver<Array<Maybe<ResolversTypes['List']>>, ParentType, ContextType>;
-  deleted?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  lists?: Resolver<Array<ResolversTypes['List']>, ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -285,19 +307,24 @@ export type CampUpdateResponseResolvers<ContextType = any, ParentType extends Re
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export interface DateScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Date'], any> {
+  name: 'Date';
+}
+
 export type ItemResolvers<ContextType = any, ParentType extends ResolversParentTypes['Item'] = ResolversParentTypes['Item']> = ResolversObject<{
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  assignedTo?: Resolver<Maybe<Array<Maybe<ResolversTypes['Int']>>>, ParentType, ContextType>;
-  state?: Resolver<Maybe<ResolversTypes['ItemState']>, ParentType, ContextType>;
+  assignedTo?: Resolver<Maybe<Array<ResolversTypes['Int']>>, ParentType, ContextType>;
+  state?: Resolver<ResolversTypes['ItemState'], ParentType, ContextType>;
   position?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  deleted?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ListResolvers<ContextType = any, ParentType extends ResolversParentTypes['List'] = ResolversParentTypes['List']> = ResolversObject<{
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  items?: Resolver<Array<Maybe<ResolversTypes['Item']>>, ParentType, ContextType>;
+  items?: Resolver<Array<ResolversTypes['Item']>, ParentType, ContextType>;
   position?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -305,6 +332,7 @@ export type ListResolvers<ContextType = any, ParentType extends ResolversParentT
 export type LoginResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['LoginResponse'] = ResolversParentTypes['LoginResponse']> = ResolversObject<{
   token?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  camps?: Resolver<Array<ResolversTypes['Camp']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -318,16 +346,17 @@ export type MemberResolvers<ContextType = any, ParentType extends ResolversParen
 }>;
 
 export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
-  synchronize?: Resolver<Maybe<Array<Maybe<ResolversTypes['Operation']>>>, ParentType, ContextType, RequireFields<MutationSynchronizeArgs, 'campId' | 'opIndex'>>;
+  synchronize?: Resolver<ResolversTypes['SynchronizeResponse'], ParentType, ContextType, RequireFields<MutationSynchronizeArgs, 'campId' | 'opIndex'>>;
   login?: Resolver<Maybe<ResolversTypes['LoginResponse']>, ParentType, ContextType, RequireFields<MutationLoginArgs, never>>;
 }>;
 
 export type OperationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Operation'] = ResolversParentTypes['Operation']> = ResolversObject<{
   type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  timestamp?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  timestamp?: Resolver<ResolversTypes['Date'], ParentType, ContextType>;
   campId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   listId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  itemId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   itemIds?: Resolver<Maybe<Array<ResolversTypes['ID']>>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   state?: Resolver<Maybe<ResolversTypes['ItemState']>, ParentType, ContextType>;
@@ -349,6 +378,13 @@ export type SubscriptionResolvers<ContextType = any, ParentType extends Resolver
   campOperationAdded?: SubscriptionResolver<Maybe<ResolversTypes['Operation']>, "campOperationAdded", ParentType, ContextType, RequireFields<SubscriptionCampOperationAddedArgs, 'campId'>>;
 }>;
 
+export type SynchronizeResponseResolvers<ContextType = any, ParentType extends ResolversParentTypes['SynchronizeResponse'] = ResolversParentTypes['SynchronizeResponse']> = ResolversObject<{
+  status?: Resolver<ResolversTypes['SyncStatus'], ParentType, ContextType>;
+  updatedOps?: Resolver<Maybe<Array<ResolversTypes['Operation']>>, ParentType, ContextType>;
+  campId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface UploadScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Upload'], any> {
   name: 'Upload';
 }
@@ -363,6 +399,7 @@ export type UserResolvers<ContextType = any, ParentType extends ResolversParentT
 export type Resolvers<ContextType = any> = ResolversObject<{
   Camp?: CampResolvers<ContextType>;
   CampUpdateResponse?: CampUpdateResponseResolvers<ContextType>;
+  Date?: GraphQLScalarType;
   Item?: ItemResolvers<ContextType>;
   List?: ListResolvers<ContextType>;
   LoginResponse?: LoginResponseResolvers<ContextType>;
@@ -372,6 +409,7 @@ export type Resolvers<ContextType = any> = ResolversObject<{
   Query?: QueryResolvers<ContextType>;
   SendOperationsResponse?: SendOperationsResponseResolvers<ContextType>;
   Subscription?: SubscriptionResolvers<ContextType>;
+  SynchronizeResponse?: SynchronizeResponseResolvers<ContextType>;
   Upload?: GraphQLScalarType;
   User?: UserResolvers<ContextType>;
 }>;

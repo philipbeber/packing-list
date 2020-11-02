@@ -3,27 +3,35 @@
 // @generated
 // This file was automatically generated and should not be edited.
 
-import { OperationInput, ItemState } from "./../../../__generated__/globalTypes";
+import { OperationInput, SyncStatus, ItemState } from "./../../__generated__/globalTypes";
 
 // ====================================================
 // GraphQL mutation operation: Synchronize
 // ====================================================
 
-export interface Synchronize_synchronize {
+export interface Synchronize_synchronize_updatedOps {
   __typename: "Operation";
   type: string;
   id: string;
-  timestamp: number;
+  timestamp: any;
   campId: string | null;
   listId: string | null;
-  itemIds: (string | null)[] | null;
+  itemId: string | null;
+  itemIds: string[] | null;
   name: string | null;
   state: ItemState | null;
   deleted: boolean | null;
 }
 
+export interface Synchronize_synchronize {
+  __typename: "SynchronizeResponse";
+  status: SyncStatus;
+  updatedOps: Synchronize_synchronize_updatedOps[] | null;
+  campId: string | null;
+}
+
 export interface Synchronize {
-  synchronize: (Synchronize_synchronize | null)[] | null;
+  synchronize: Synchronize_synchronize;
 }
 
 export interface SynchronizeVariables {

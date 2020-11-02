@@ -1,4 +1,3 @@
-import { applyOperationToCamp, Camp, CampOperation } from "desert-thing-packing-list-common";
 import { applyUserOperation, CampManager, connectCamp, createNewCamp, synchronizeCamp, syncResponse } from "../../model/campManager";
 import { CampActions } from "../actions/campActions";
 

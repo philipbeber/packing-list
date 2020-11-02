@@ -1,5 +1,4 @@
 import * as uuid from "short-uuid";
-import { Camp } from "desert-thing-packing-list-common";
 import {
   CampOperationBase,
   ChangeCampItemDeletedOperation,

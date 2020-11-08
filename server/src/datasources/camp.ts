@@ -1,10 +1,7 @@
 import { DataSource, DataSourceConfig } from "apollo-datasource";
 import { AuthenticationError } from "apollo-server";
-import { ExpressContext } from "apollo-server-express/dist/ApolloServer";
 import {
   MutationSynchronizeArgs,
-  Operation,
-  OperationInput,
   SynchronizeResponse,
   SyncStatus,
 } from "../generated/graphql";
@@ -14,9 +11,8 @@ import {
   CampOperation,
   ChangeCampItemDeletedOperation,
   ChangeCampItemStateOperation,
-  ListOperation,
 } from "desert-thing-packing-list-common";
-import { DbCamp, Store } from "../model/store";
+import { Store } from "../model/store";
 import { MyContext } from "./user";
 
 export class CampAPI extends DataSource<MyContext> {
@@ -52,43 +48,40 @@ export class CampAPI extends DataSource<MyContext> {
     if (opIndex < 1 || !campId) {
       throw new Error("Invalid arguments");
     }
-    if (!clientOps?.length) {
-      const serverOps = await this.store.getCampOps(campId, opIndex);
-      if (!serverOps) {
-        throw new Error("Camp not found");
-      }
+    const [oldCamp, serverOps] = await this.store.getCampWithOps(
+      campId,
+      opIndex
+    );
+    if (!oldCamp || !serverOps) {
+      throw new Error("Camp not found");
+    }
+
+    if (!clientOps?.length || serverOps.length) {
       return serverOps.length
         ? { status: SyncStatus.NEED_UPDATE, updatedOps: serverOps }
         : { status: SyncStatus.ALL_GOOD };
     }
-    const serverOps = [] as CampOperation[];
-    while (true) {
-      const [oldCamp, newServerOps] = await this.store.getCampWithOps(
-        campId,
-        opIndex
-      );
-      if (!oldCamp) {
-        throw new Error("Camp not found");
-      }
-      serverOps.push(...newServerOps);
-      opIndex += newServerOps.length;
-      clientOps = this.transformOps(clientOps, newServerOps);
-      if (clientOps.length === 0) {
-        return serverOps.length
-          ? { status: SyncStatus.NEED_UPDATE, updatedOps: serverOps }
-          : { status: SyncStatus.ALL_GOOD };
-      }
-      const newCamp = applyOperationsToCamp(oldCamp, clientOps);
-      const success = this.store.writeCamp(newCamp, clientOps, opIndex);
-      if (success) {
-        return serverOps.length
-          ? {
-              status: SyncStatus.NEED_UPDATE,
-              updatedOps: [...serverOps, ...clientOps],
-            }
-          : { status: SyncStatus.ALL_GOOD };
-      }
+
+    // Update DB with given operations
+    const newCamp = applyOperationsToCamp(oldCamp, clientOps);
+    const success = this.store.writeCamp(newCamp, clientOps, opIndex);
+    if (success) {
+      return { status: SyncStatus.ALL_GOOD };
     }
+    // Failed because someone else wrote changes at the same time, therefore get
+    // those changes
+    const [latestCamp, latestServerOps] = await this.store.getCampWithOps(
+      campId,
+      opIndex
+    );
+    if (!latestCamp || !latestServerOps || !latestServerOps.length) {
+      // Oops, didn't find the changes
+      throw new Error("Something terrible happened");
+    }
+    // Can't merge the changes here because if the client has more changes queued then
+    // things get really complicated. Therefore just return the latest changes and let
+    // the client figure it out.
+    return { status: SyncStatus.NEED_UPDATE, updatedOps: latestServerOps };
   }
 
   async createCamp(ops: CampOperation[]): Promise<SynchronizeResponse> {

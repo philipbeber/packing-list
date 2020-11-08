@@ -9,10 +9,12 @@ import {
   TextField,
   Typography,
 } from "@material-ui/core";
-import { useLoginMutation } from "../apollo/login";
+import { LOGIN_USER } from "../apollo/login";
+import * as LoginTypes from "../apollo/__generated__/Login";
 import { useDispatch } from "react-redux";
 import { UserActions } from "../redux/actions/userActions";
 import { Camp } from "desert-thing-packing-list-common";
+import { useMutation } from "@apollo/client";
 
 const useStyles = makeStyles((theme) => ({
   textfield: {
@@ -36,7 +38,24 @@ const Login: React.FC<LoginProps> = (props) => {
   const [password, setPassword] = React.useState("");
   const passwordRef = createRef<HTMLDivElement>();
 
-  const [login, { loading, error }] = useLoginMutation();
+  const [login, { loading, error }] = useMutation<LoginTypes.Login, LoginTypes.LoginVariables>(LOGIN_USER, {
+    onCompleted(data) {
+      if (data.login) {
+        onClose();
+        userDispatch({
+          type: "LOGIN",
+          token: data.login.token,
+          user: data.login.user,
+          camps: data.login.camps as Camp[],
+        });
+      }
+    },
+    onError(error) {
+      // Apollo will throw an unhandled exception if there's no onError handler. Not sure what that's about
+      // since the error is also return by useMutation.
+      console.log(error);
+    },
+  });
 
   const userDispatch = useDispatch<Dispatch<UserActions>>()
   
@@ -45,17 +64,8 @@ const Login: React.FC<LoginProps> = (props) => {
     setPassword("");
   }
 
-  const handleLogin = async () => {
-    const { data } = await login({ variables: { email, password } });
-    if (data?.login) {
-      onClose();
-      userDispatch({
-        type: "LOGIN",
-        token: data.login.token,
-        user: data.login.user,
-        camps: data.login.camps as Camp[],
-      });
-    }
+  const handleLogin = () => {
+    login({ variables: { email, password } });
   };
 
   return (

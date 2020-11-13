@@ -1,4 +1,4 @@
-import { Collection, MongoClient, ObjectID, ReadConcern, TransactionOptions } from "mongodb";
+import { ClientSession, Collection, Db, MongoClient, ObjectID, ReadConcern, TransactionOptions } from "mongodb";
 import { Camp, CampOperation, List } from "desert-thing-packing-list-common";
 import { UserWithPassword } from "./user";
 
@@ -34,6 +34,8 @@ interface ChunkSlice {
     count: number;
 }
 
+const dbName = "desert-thing-packing-list";
+
 export class Store {
   private client: MongoClient;
   private connected?: Promise<any>;
@@ -54,29 +56,36 @@ export class Store {
 
   initialize() {
     if (!this.connected) {
-      this.connected = this.client
-        .connect()
-        .then(() => {
-          this.users = this.client
-            .db("desert-thing-packing-list")
-            .collection("users");
-        })
-        .then(() => {
-          this.camps = this.client
-            .db("desert-thing-packing-list")
-            .collection("camps");
-        })
-        .then(() => {
-          this.operations = this.client
-            .db("desert-thing-packing-list")
-            .collection("operations");
-        })
-        .catch((err) => {
-          console.error(err);
-          process.exit(1);
-        });
+      this.connected = this.connect();
     }
     return this.connected;
+  }
+
+  private async connect() {
+    await this.client.connect();
+    const db = this.client.db(dbName);
+    const collections = await db.collections();
+
+    this.users = await this.createCollection(db, collections, "users");
+    await this.users.createIndex("username", { unique: true });
+    this.camps = await this.createCollection(db, collections, "camps");
+    this.operations = await this.createCollection(db, collections, "operations");
+    await this.operations.createIndex({ campId: 1, chunkId: 1 }, { unique: true });
+  }
+
+  private async createCollection<T>(db: Db, collections: Collection<any>[], name: string) {
+    const coll = collections.find(c => c.collectionName === name);
+    if (coll) {
+      return coll;
+    }
+    return await db.createCollection(name);
+  }
+
+  async close() {
+    await this.client.close();
+    this.camps = undefined;
+    this.operations = undefined;
+    this.users = undefined;
   }
 
   async getUserByUserName(
@@ -100,17 +109,46 @@ export class Store {
     };
   }
 
-  async createCamp(newCamp: {
-    name: string;
-    lists: List[];
-    ops: CampOperation[];
-    opCount: number;
-  }): Promise<string> {
+  private async createCamp(
+    name: string,
+    lists: List[],
+    opCount: number,
+    session: ClientSession
+  ): Promise<string> {
     if (!this.camps) {
       throw Error("camps is null");
     }
-    const result = await this.camps.insertOne(newCamp);
+    const result = await this.camps.insertOne(
+      { name, lists, opCount },
+      { session }
+    );
     return result.insertedId.toHexString();
+  }
+
+  private async updateCamp(
+    camp: Camp,
+    lastServerOp: number,
+    newOpCount: number,
+    session: ClientSession
+  ) {
+    if (!this.camps) {
+      throw Error("camps is null");
+    }
+    const result = await this.camps.updateOne(
+      {
+        _id: new ObjectID(camp.id),
+        opCount: lastServerOp,
+      },
+      {
+        $set: {
+          name: camp.name,
+          lists: camp.lists,
+          opCount: lastServerOp + newOpCount,
+        },
+      },
+      { session }
+    );
+    return !!result.modifiedCount;
   }
 
   async addCampToUser(userId: string, campId: string): Promise<void> {
@@ -127,7 +165,7 @@ export class Store {
     if (!this.camps) {
       throw Error("Camps is null");
     }
-    console.log("Looking for ", id);
+    // console.log("Looking for ", id);
     const camp = await this.camps.findOne(
       { _id: new ObjectID(id) },
       {
@@ -138,7 +176,7 @@ export class Store {
         },
       }
     );
-    console.log("Found ", camp);
+    // console.log("Found ", camp);
     return camp
       ? {
           id,
@@ -148,7 +186,6 @@ export class Store {
         }
       : undefined;
   }
-
 
   async getCampWithOps(
     id: string,
@@ -176,11 +213,12 @@ export class Store {
       lists: dbCamp.lists,
       revision: dbCamp.opCount,
     };
-    if (nextOp <= dbCamp.opCount) {
+    if (nextOp >= dbCamp.opCount) {
       return [camp, []];
     }
 
     const slices = getChunkSlices(nextOp, dbCamp.opCount - nextOp);
+    // console.log(slices);
     const chunkFinds = slices.map((slice) =>
       this.operations?.findOne(
         { campId: new ObjectID(id), chunkId: slice.chunkId },
@@ -202,8 +240,14 @@ export class Store {
     return [camp, ops];
   }
 
-  async writeCamp(camp: Camp, newOps: CampOperation[], lastServerOp: number) {
+  async writeCamp(
+    camp: Camp,
+    newOps: CampOperation[],
+    lastServerOp: number,
+    testHook?: (msg: string) => void
+  ) {
     let succeeded = false;
+    let campId = camp.id;
     const session = this.client.startSession();
     const transactionOptions = {
       readPreference: "primary",
@@ -215,40 +259,52 @@ export class Store {
         if (!this.camps || !this.operations) {
           throw Error("Camps or operations is null");
         }
-        const result = await this.camps.updateOne(
-          {
-            _id: new ObjectID(camp.id),
-            opCount: lastServerOp,
-          },
-          {
-            $set: {
-              name: camp.name,
-              lists: camp.lists,
-              opCount: lastServerOp + newOps.length,
-            },
+        if (testHook) testHook(`start trans ${newOps[0].id}`);
+        if (newOps[0].type === "CREATE_CAMP") {
+          campId = await this.createCamp(camp.name, camp.lists, newOps.length, session);
+        } else {
+          const wroteOne = await this.updateCamp(
+            camp,
+            lastServerOp,
+            newOps.length,
+            session
+          );
+          if (!wroteOne) {
+            // console.log("!wroteOne", newOps[0].id);
+            // Someone else updated it before us
+            if (testHook) testHook(`bail ${newOps[0].id}`);
+            return;
           }
-        );
-        if (!result.modifiedCount) {
-          // Someone else updated it before us
-          return;
         }
+
+        // console.log("wroteOne", newOps[0].id);
+        if (testHook) testHook(`middle ${newOps[0].id}`);
+
         let nextIndex = 0;
         for (let chunk of getChunkSlices(lastServerOp, newOps.length)) {
+          // console.log(chunk);
           const ops = newOps.slice(nextIndex, nextIndex + chunk.count);
           nextIndex += chunk.count;
           if (chunk.startIndex === 0) {
-            await this.operations.insertOne({
-              campId: new ObjectID(camp.id),
-              chunkId: chunk.chunkId,
-              ops,
-            })
+            await this.operations.insertOne(
+              {
+                campId: new ObjectID(campId),
+                chunkId: chunk.chunkId,
+                ops,
+              },
+              { session }
+            );
           } else {
-            await this.operations.updateOne({
-              campId: new ObjectID(camp.id),
-              chunkId: chunk.chunkId
-            }, {
-              $push: { ops: { $each: ops }}
-            });
+            await this.operations.updateOne(
+              {
+                campId: new ObjectID(campId),
+                chunkId: chunk.chunkId,
+              },
+              {
+                $push: { ops: { $each: ops } },
+              },
+              { session }
+            );
           }
         }
         succeeded = true;
@@ -257,7 +313,7 @@ export class Store {
       console.log(e);
     }
 
-    return succeeded;
+    return { succeeded, campId };
   }
 }
 

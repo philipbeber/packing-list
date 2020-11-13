@@ -64,8 +64,8 @@ export class CampAPI extends DataSource<MyContext> {
 
     // Update DB with given operations
     const newCamp = applyOperationsToCamp(oldCamp, clientOps);
-    const success = this.store.writeCamp(newCamp, clientOps, opIndex);
-    if (success) {
+    const { succeeded } = await this.store.writeCamp(newCamp, clientOps, opIndex);
+    if (succeeded) {
       return { status: SyncStatus.ALL_GOOD };
     }
     // Failed because someone else wrote changes at the same time, therefore get
@@ -102,13 +102,10 @@ export class CampAPI extends DataSource<MyContext> {
     if (ops.length > 1) {
       camp = applyOperationsToCamp(camp, ops.slice(1) as CampOperation[]);
     }
-    const campId = await this.store.createCamp({
-      name: camp.name,
-      lists: camp.lists,
-      ops: ops,
-      opCount: ops.length,
-    });
-
+    const { succeeded, campId } = await this.store.writeCamp(camp, ops, 0);
+    if (!succeeded) {
+      throw Error("Create shouldn't fail!");
+    }
     await this.store.addCampToUser(this.context.userId, campId);
 
     return {

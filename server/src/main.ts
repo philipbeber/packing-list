@@ -18,7 +18,7 @@ const context: ({ req }: ExpressContext) => Promise<MyContext|undefined> = async
   if (auth && auth.startsWith("Bearer ")) {
     const token = auth.slice("Bearer ".length);
     const ctx = decryptToken<MyContext>(token);
-    console.log(ctx);
+    // console.log(ctx);
     return ctx;
   }
   return {};

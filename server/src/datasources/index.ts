@@ -1,7 +1,7 @@
 import { DataSources } from "apollo-server-core/dist/graphqlOptions"
 import { ExpressContext } from "apollo-server-express/dist/ApolloServer";
 import { createStore, Store } from "../model/store";
-import { CampAPI } from "./camp";
+import { CampAPI } from "./camp-api";
 import { MyContext, UserAPI } from "./user";
 export * from "./user";
 

@@ -16,11 +16,9 @@ module.exports = async () => {
     autoStart: true,
     replSet: { storageEngine: "wiredTiger" },
   });
-  console.error("foo")
 
   await replSet.waitUntilRunning();
   const uri = await replSet.getUri();
-  console.error(uri)
 
   const mongoConfig = {
     mongoUri: uri,

@@ -19,13 +19,13 @@ export interface ListOperation extends CampOperationBase {
   readonly listId: string;
 }
 
-export interface CreateCampListOperation extends ListOperation {
-  readonly type: "CREATE_CAMP_LIST";
+export interface RenameCampListOperation extends ListOperation {
+  readonly type: "RENAME_CAMP_LIST";
   readonly name: string;
 }
 
-export interface CreateCampItemOperation extends ListOperation {
-  readonly type: "CREATE_CAMP_ITEM";
+export interface RenameCampItemOperation extends ListOperation {
+  readonly type: "RENAME_CAMP_ITEM";
   readonly itemId: string;
   readonly name: string;
 }
@@ -45,7 +45,7 @@ export interface ChangeCampItemDeletedOperation extends ListOperation {
 export type CampOperation =
   | IdentityOperation
   | CreateCampOperation
-  | CreateCampListOperation
-  | CreateCampItemOperation
+  | RenameCampListOperation
+  | RenameCampItemOperation
   | ChangeCampItemStateOperation
   | ChangeCampItemDeletedOperation;

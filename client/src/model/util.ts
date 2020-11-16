@@ -3,8 +3,8 @@ import {
   CampOperationBase,
   ChangeCampItemDeletedOperation,
   ChangeCampItemStateOperation,
-  CreateCampItemOperation,
-  CreateCampListOperation,
+  RenameCampItemOperation,
+  RenameCampListOperation,
   CreateCampOperation,
   ListOperation,
 } from "desert-thing-packing-list-common";
@@ -41,10 +41,10 @@ export function createCamp(name: string): {campId: string, op: CreateCampOperati
 
 export function createList(
   name: string
-): CreateCampListOperation {
+): RenameCampListOperation {
   return {
     ...createListOperation(generateId()),
-    type: "CREATE_CAMP_LIST",
+    type: "RENAME_CAMP_LIST",
     name,
   };
 }
@@ -52,10 +52,10 @@ export function createList(
 export function createItem(
   listId: string,
   name: string
-): CreateCampItemOperation {
+): RenameCampItemOperation {
   return {
     ...createListOperation(listId),
-    type: "CREATE_CAMP_ITEM",
+    type: "RENAME_CAMP_ITEM",
     itemId: generateId(),
     name,
   };

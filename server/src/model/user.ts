@@ -1,7 +1,10 @@
-export interface UserWithPassword {
-    id: string;
-    username: string;
-    name: string;
-    password: string;
-    camps: string[];
-  }
+export interface User {
+  id: string;
+  username: string;
+  name: string;
+  camps: string[];
+}
+
+export interface UserWithPassword extends User {
+  password: string;
+}

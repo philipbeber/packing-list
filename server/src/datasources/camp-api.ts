@@ -32,17 +32,18 @@ export class CampAPI extends DataSource<MyContext> {
     await this.store.initialize();
   }
 
-  async syncCamp({
-    campId,
-    opIndex,
-    lastOp,
-    newOps,
-  }: MutationSynchronizeArgs): Promise<SynchronizeResponse> {
+  async syncCamp(
+    { campId, opIndex, lastOp, newOps }: MutationSynchronizeArgs,
+    testHook?: (hook: string) => Promise<any>
+  ): Promise<SynchronizeResponse> {
     let clientOps = newOps as CampOperation[] | undefined;
     if (!this.context?.userId) {
       throw new AuthenticationError("Invalid token");
     }
     if (clientOps && clientOps.length && clientOps[0].type == "CREATE_CAMP") {
+      if (opIndex !== 0) {
+        throw new Error("CREATE_CAMP must be first operation");
+      }
       return this.createCamp(clientOps);
     }
     if (opIndex < 1 || !campId) {
@@ -62,9 +63,15 @@ export class CampAPI extends DataSource<MyContext> {
         : { status: SyncStatus.ALL_GOOD };
     }
 
+    if (testHook) await testHook("pre-writeCamp");
+
     // Update DB with given operations
     const newCamp = applyOperationsToCamp(oldCamp, clientOps);
-    const { succeeded } = await this.store.writeCamp(newCamp, clientOps, opIndex);
+    const { succeeded } = await this.store.writeCamp(
+      newCamp,
+      clientOps,
+      opIndex
+    );
     if (succeeded) {
       return { status: SyncStatus.ALL_GOOD };
     }
@@ -84,7 +91,7 @@ export class CampAPI extends DataSource<MyContext> {
     return { status: SyncStatus.NEED_UPDATE, updatedOps: latestServerOps };
   }
 
-  async createCamp(ops: CampOperation[]): Promise<SynchronizeResponse> {
+  private async createCamp(ops: CampOperation[]): Promise<SynchronizeResponse> {
     if (!this.context?.userId) {
       throw new AuthenticationError("Invalid token");
     }
@@ -112,89 +119,5 @@ export class CampAPI extends DataSource<MyContext> {
       status: SyncStatus.ALL_GOOD,
       campId,
     };
-  }
-
-  transformOps(
-    clientOps: CampOperation[],
-    serverOps: CampOperation[]
-  ): CampOperation[] {
-    let newOps = clientOps;
-    let changed = false;
-    serverOps.forEach((serverOp) => {
-      for (let index = 0; index < newOps.length; index++) {
-        const clientOp = newOps[index];
-        const [newClientOp, newServerOp] = this.transformOp(clientOp, serverOp);
-        if (newClientOp !== clientOp) {
-          if (!changed) {
-            newOps = newOps.slice(0);
-            changed = true;
-          }
-          if (newClientOp.type === "IDENTITY") {
-            newOps.splice(index, 1);
-            index--;
-          } else {
-            newOps[index] = newClientOp;
-          }
-        }
-        if (newServerOp.type === "IDENTITY") {
-          break;
-        }
-        serverOp = newServerOp;
-      }
-    });
-    return newOps;
-  }
-
-  transformOp(
-    clientOp: CampOperation,
-    serverOp: CampOperation
-  ): [CampOperation, CampOperation] {
-    if (clientOp.timestamp > serverOp.timestamp) {
-      // For now only simple operations are supported, so earlier ones will always be overwritten
-      return [clientOp, { ...serverOp, type: "IDENTITY" }];
-    }
-    if (clientOp.type !== serverOp.type) {
-      return [clientOp, serverOp];
-    }
-    switch (clientOp.type) {
-      case "CREATE_CAMP_LIST":
-      case "CREATE_CAMP_ITEM":
-        return [clientOp, serverOp];
-      case "CHANGE_CAMP_ITEM_DELETED":
-      case "CHANGE_CAMP_ITEM_STATE":
-        return this.transformListOp(
-          clientOp,
-          serverOp as
-            | ChangeCampItemStateOperation
-            | ChangeCampItemDeletedOperation
-        );
-      default:
-        throw Error("Illegal client op type: " + clientOp.type);
-    }
-  }
-
-  // Client op happened before server op but will appear after it in the list, therefore just remove
-  // any item ids that appear in the server operation.
-  transformListOp(
-    clientOp: ChangeCampItemStateOperation | ChangeCampItemDeletedOperation,
-    serverOp: ChangeCampItemStateOperation | ChangeCampItemDeletedOperation
-  ): [CampOperation, CampOperation] {
-    if (clientOp.listId !== serverOp.listId) {
-      return [clientOp, serverOp];
-    }
-    const newItemIds = clientOp.itemIds.filter(
-      (id) => serverOp.itemIds.indexOf(id) < 0
-    );
-    if (newItemIds.length === clientOp.itemIds.length) {
-      return [clientOp, serverOp];
-    }
-    if (newItemIds.length === 0) {
-      return [{ ...clientOp, type: "IDENTITY" }, serverOp];
-    }
-    const newClientOp = {
-      ...clientOp,
-      itemIds: newItemIds,
-    };
-    return [newClientOp, serverOp];
   }
 }

@@ -1,6 +1,6 @@
 import { ClientSession, Collection, Db, MongoClient, ObjectID, ReadConcern, TransactionOptions } from "mongodb";
 import { Camp, CampOperation, List } from "desert-thing-packing-list-common";
-import { UserWithPassword } from "./user";
+import { UserWithPassword, User } from "./user";
 
 interface DbUser {
   _id: ObjectID;
@@ -37,24 +37,24 @@ interface ChunkSlice {
 const dbName = "desert-thing-packing-list";
 
 export class Store {
-  private client: MongoClient;
+  private mongoUri: string;
+  private client?: MongoClient;
   private connected?: Promise<any>;
   private users?: Collection<DbUser>;
   private camps?: Collection<DbCamp>;
   private operations?: Collection<DbOperations>;
+  private initCount = 0;
 
   constructor() {
     const uri = process.env.MONGO_URI;
     if (!uri) {
       throw Error("MONGO_URI environment variable not set!!");
     }
-    this.client = new MongoClient(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    this.mongoUri = uri;
   }
 
   initialize() {
+    this.initCount++;
     if (!this.connected) {
       this.connected = this.connect();
     }
@@ -62,6 +62,10 @@ export class Store {
   }
 
   private async connect() {
+    this.client = new MongoClient(this.mongoUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     await this.client.connect();
     const db = this.client.db(dbName);
     const collections = await db.collections();
@@ -82,10 +86,14 @@ export class Store {
   }
 
   async close() {
-    await this.client.close();
-    this.camps = undefined;
-    this.operations = undefined;
-    this.users = undefined;
+    if (--this.initCount === 0) {
+      await this.client?.close();
+      this.client = undefined;
+      this.camps = undefined;
+      this.operations = undefined;
+      this.users = undefined;
+      this.connected = undefined;
+    }
   }
 
   async getUserByUserName(
@@ -107,6 +115,25 @@ export class Store {
       id: user._id.toHexString(),
       camps: user.camps ? user.camps.map((c) => c.toHexString()) : [],
     };
+  }
+
+  async getUser(userId: string): Promise<User | undefined> {
+    const user = await this.users?.findOne(new ObjectID(userId));
+    return user ? {
+      id: user._id.toHexString(),
+      name: user.name,
+      username: user.username,
+      camps: user.camps ? user.camps.map((c) => c.toHexString()) : [],
+    } : undefined;
+  }
+
+  async createUser(username: string, name: string, password: string): Promise<string> {
+    const result = await this.users?.insertOne({username, name, password, superuser: false, camps: []});
+    const userId = result?.insertedId.toHexString();
+    if (!userId) {
+      throw new Error("userId is null");
+    }
+    return userId;
   }
 
   private async createCamp(
@@ -243,11 +270,13 @@ export class Store {
   async writeCamp(
     camp: Camp,
     newOps: CampOperation[],
-    lastServerOp: number,
-    testHook?: (msg: string) => void
+    lastServerOp: number
   ) {
     let succeeded = false;
     let campId = camp.id;
+    if (!this.client) {
+      throw Error("Client is null");
+    }
     const session = this.client.startSession();
     const transactionOptions = {
       readPreference: "primary",
@@ -259,7 +288,6 @@ export class Store {
         if (!this.camps || !this.operations) {
           throw Error("Camps or operations is null");
         }
-        if (testHook) testHook(`start trans ${newOps[0].id}`);
         if (newOps[0].type === "CREATE_CAMP") {
           campId = await this.createCamp(camp.name, camp.lists, newOps.length, session);
         } else {
@@ -272,13 +300,9 @@ export class Store {
           if (!wroteOne) {
             // console.log("!wroteOne", newOps[0].id);
             // Someone else updated it before us
-            if (testHook) testHook(`bail ${newOps[0].id}`);
             return;
           }
         }
-
-        // console.log("wroteOne", newOps[0].id);
-        if (testHook) testHook(`middle ${newOps[0].id}`);
 
         let nextIndex = 0;
         for (let chunk of getChunkSlices(lastServerOp, newOps.length)) {

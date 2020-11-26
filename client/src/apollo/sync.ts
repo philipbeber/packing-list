@@ -1,9 +1,8 @@
-import { gql } from "@apollo/client";
+import { ApolloClient, gql, NormalizedCacheObject } from "@apollo/client";
 import { SyncStatus } from "../__generated__/globalTypes";
 import {
   CampOperation
 } from "desert-thing-packing-list-common";
-import { client } from "./client";
 import { Synchronize, SynchronizeVariables } from "./__generated__/Synchronize";
 import { OPERATION_FRAGMENT } from "./fragments";
 
@@ -31,11 +30,14 @@ export const SYNCHRONIZE = gql`
 `;
 
 export async function synchronize(
+  client: ApolloClient<NormalizedCacheObject>,
   campId: string,
   opIndex: number,
-  lastOp?: string,
-  newOps?: CampOperation[]
+  lastOp: string | undefined,
+  newOps: CampOperation[],
+  token: string
 ): Promise<{status: SyncStatus, serverOps?: CampOperation[], campId?: string}> {
+
   const result = await client.mutate<Synchronize, SynchronizeVariables>({
     mutation: SYNCHRONIZE,
     variables: {
@@ -43,6 +45,9 @@ export async function synchronize(
       opIndex,
       lastOp,
       newOps,
+    },
+    context: {
+      headers: { authorization: `Bearer ${token}` },
     },
   });
   if (result.errors) {

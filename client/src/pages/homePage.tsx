@@ -22,6 +22,8 @@ import { CampActions } from "../redux/actions/campActions";
 import { createSelector } from "reselect";
 import Login from "../components/login";
 import { UserActions } from "../redux/actions/userActions";
+import { AppThunk, synchronizeCampsAction } from "../redux/actions/appActions";
+import { ApolloClient, NormalizedCacheObject, useApolloClient } from "@apollo/client";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -54,11 +56,11 @@ const HomePage: React.FC = () => {
   const [createCampOpen, setCreateCampOpen] = React.useState(false);
   const [loginOpen, setLoginOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const campDispatch = useDispatch<Dispatch<CampActions>>();
-  const userDispatch = useDispatch<Dispatch<UserActions>>();
+  const dispatch = useDispatch<Dispatch<CampActions | AppThunk | UserActions>>();
+  const client = useApolloClient() as ApolloClient<NormalizedCacheObject>;
 
   const handleSynchronize = () => {
-    campDispatch({ type: "SYNCHRONIZE" });
+    dispatch(synchronizeCampsAction(client));
   }
 
   return (
@@ -79,6 +81,7 @@ const HomePage: React.FC = () => {
               setAnchorEl(e.currentTarget);
             }}
             className={classes.menuActionButton}
+            data-testid="menu-open"
           >
             <Icons.MoreVert />
           </Button>
@@ -94,6 +97,7 @@ const HomePage: React.FC = () => {
                   setLoginOpen(true);
                   setAnchorEl(null);
                 }}
+                data-testid="open-login"
               >
                 Log in
               </MenuItem>
@@ -111,14 +115,14 @@ const HomePage: React.FC = () => {
             <MenuItem disabled>Join a camp</MenuItem>
             <MenuItem disabled>Create a private list</MenuItem>
             {isLoggedIn ? (
-              <MenuItem onClick={handleSynchronize}>Synchronize</MenuItem>
+              <MenuItem onClick={handleSynchronize} data-testid="sync-button">Synchronize</MenuItem>
             ) : (
               ""
             )}
             {isLoggedIn ? (
               <MenuItem
                 onClick={() => {
-                  userDispatch({type: "LOGOUT"})
+                  dispatch({type: "LOGOUT"})
                   setAnchorEl(null);
                 }}
               >
@@ -180,7 +184,7 @@ const HomePage: React.FC = () => {
                   key={camp.id}
                   button
                   onClick={() =>
-                    campDispatch({ type: "OPEN_CAMP", payload: camp.id })
+                    dispatch({ type: "OPEN_CAMP", payload: camp.id })
                   }
                 >
                   <ListItemText primary={camp.name} />

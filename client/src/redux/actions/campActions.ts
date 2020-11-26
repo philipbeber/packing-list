@@ -1,7 +1,6 @@
-import { Camp, CampOperation } from "desert-thing-packing-list-common";
-import { SyncStatus } from "../../__generated__/globalTypes";
+import { Camp } from "desert-thing-packing-list-common";
+import { CampManager } from "../../model/campManager";
 import { ILoginRequest, ILogout } from "./userActions";
-
 export interface IOpenCampAction {
   readonly type: "OPEN_CAMP";
   payload: string;
@@ -11,10 +10,14 @@ export interface ICloseCampAction {
   readonly type: "CLOSE_CAMP";
 }
 
+export interface ICreateCampAction {
+  readonly type: "CREATE_CAMP";
+  readonly cm: CampManager;
+}
+
 export interface IUserOperationAction {
-  readonly type: "USER_OPERATION";
-  campId: string;
-  op: CampOperation;
+  readonly type: "UPDATE_CAMP";
+  readonly cm: CampManager;
 }
 
 export interface IServerUpdateAction {
@@ -23,19 +26,14 @@ export interface IServerUpdateAction {
 }
 
 export interface ISynchronizeAction {
-  readonly type: "SYNCHRONIZE";
-  readonly campId?: string;
+  readonly type: "SYNCHRONIZE_START";
+  readonly campId: string;
 }
 
 export interface ISynchronizeResponseAction {
   readonly type: "SYNCHRONIZE_RESPONSE";
   readonly campId: string;
-  readonly operationCount: number;
-  readonly result: {
-    status: SyncStatus;
-    serverOps?: CampOperation[];
-    campId?: string;
-  };
+  readonly cm: CampManager;
 }
 
 export interface IChangeCampIdAction {
@@ -59,6 +57,7 @@ export interface ICloseCampListAction {
 export type CampActions =
   | IOpenCampAction
   | ICloseCampAction
+  | ICreateCampAction
   | IUserOperationAction
   | IOpenCampListAction
   | ICloseCampListAction

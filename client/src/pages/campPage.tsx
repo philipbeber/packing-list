@@ -20,6 +20,7 @@ import { CampActions } from "../redux/actions/campActions";
 import { createList } from "../model";
 import CampListPage from "./campListPage";
 import { selectedCampSelector } from "../redux/selectors";
+import { AppThunk, userOperationAction } from "../redux/actions/appActions";
 
 const useStyles = makeStyles((theme) => ({
   menuButton: {
@@ -50,7 +51,7 @@ const CampPage: React.FC = () => {
     (state: AppState) => state.camp.selectedListId
   );
 
-  const campDispatch = useDispatch<Dispatch<CampActions>>();
+  const dispatch = useDispatch<Dispatch<CampActions | AppThunk>>();
   if (!camp) {
     return <Fragment></Fragment>;
   }
@@ -59,11 +60,7 @@ const CampPage: React.FC = () => {
     if (!newListName) {
       return;
     }
-    campDispatch({
-      type: "USER_OPERATION",
-      campId: camp.id,
-      op: createList(newListName),
-    });
+    dispatch(userOperationAction(camp.id, createList(newListName)));
     setNewListName("");
   };
 
@@ -80,7 +77,7 @@ const CampPage: React.FC = () => {
             className={classes.menuButton}
             color="inherit"
             aria-label="menu"
-            onClick={() => campDispatch({ type: "CLOSE_CAMP" })}
+            onClick={() => dispatch({ type: "CLOSE_CAMP" })}
           >
             <Icons.ArrowBackIos />
           </IconButton>
@@ -136,7 +133,7 @@ const CampPage: React.FC = () => {
                   key={list.id}
                   button
                   onClick={() =>
-                    campDispatch({
+                    dispatch({
                       type: "OPEN_CAMP_LIST",
                       payload: { campId: camp.id, listId: list.id },
                     })

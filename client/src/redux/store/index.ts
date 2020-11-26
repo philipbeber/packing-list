@@ -1,11 +1,13 @@
 import * as _ from "lodash";
-import { createStore, Store } from "redux";
+import { applyMiddleware, createStore, Store } from "redux";
 import rootReducer, { AppState } from "../reducers/rootReducer";
-import { devToolsEnhancer } from "redux-devtools-extension";
+import { composeWithDevTools } from "redux-devtools-extension";
 import { AppActions } from "../actions";
 import { resetCampManager } from "../../model/campManager";
+import thunkMiddleware from 'redux-thunk'
 
 const version = "0.3";
+const composedEnhancer = composeWithDevTools(applyMiddleware(thunkMiddleware))
 
 interface FrozenState {
   version: string;
@@ -15,7 +17,7 @@ interface FrozenState {
 const store: Store<AppState, AppActions> = createStore(
   rootReducer,
   loadState(),
-  devToolsEnhancer({})
+  composedEnhancer
 );
 export default store;
 

@@ -29,6 +29,7 @@
     "react-scripts": "3.4.3",
     "redux": "^4.0.5",
     "redux-devtools-extension": "^2.13.8",
+    "redux-thunk": "^2.3.0",
     "reselect": "^4.0.0",
     "short-uuid": "^4.1.0",
     "typescript": "^3.7.5"
@@ -38,6 +39,7 @@
     "build": "react-scripts build",
     "build-demo": "react-scripts build; rimraf demo; move-file build demo",
     "test": "react-scripts test",
+    "test:debug": "react-scripts --inspect-brk test --runInBand --no-cache",
     "eject": "react-scripts eject",
     "codegen": "apollo client:codegen --target typescript --watch --globalTypesFile=src/__generated__/globalTypes.ts"
   },

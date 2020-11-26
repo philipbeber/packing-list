@@ -3,8 +3,7 @@ import { UserActions } from "../actions/userActions";
 
 type UserState = {
   token?: string,
-  info?: User,
-  isLoggingIn?: boolean,
+  info?: User
 };
 const initialState: UserState = {};
 const userReducer = (
@@ -17,7 +16,7 @@ const userReducer = (
         token: action.token,
         info: {
           id: action.user.id,
-          username: action.user.name,
+          username: action.user.username,
           name: action.user.name,
         },
       };

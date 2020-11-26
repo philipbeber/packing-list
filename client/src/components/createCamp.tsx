@@ -11,6 +11,7 @@ import {
 import { useDispatch } from "react-redux";
 import { createCamp } from "../model";
 import { CampActions } from "../redux/actions/campActions";
+import { AppThunk, userOperationAction } from "../redux/actions/appActions";
 
 const useStyles = makeStyles((theme) => ({
   textfield: {
@@ -31,13 +32,11 @@ const CreateCamp: React.FC<CreateCampProps> = (props) => {
   const classes = useStyles();
   const { onClose, open } = props;
   const [campName, setCampName] = React.useState("");
-  const campsDispatch = useDispatch<Dispatch<CampActions>>();
+  const dispatch = useDispatch<Dispatch<CampActions | AppThunk>>();
 
   const handleCreate = () => {
-    campsDispatch({
-      type: "USER_OPERATION",
-      ...createCamp(campName),
-    });
+    const newCamp = createCamp(campName);
+    dispatch(userOperationAction(newCamp.campId, newCamp.op));
     setCampName("");
     onClose();
   };

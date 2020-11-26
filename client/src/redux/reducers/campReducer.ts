@@ -1,4 +1,4 @@
-import { applyUserOperation, CampManager, connectCamp, createNewCamp, synchronizeCamp, syncResponse } from "../../model/campManager";
+import { CampManager, connectCamp } from "../../model/campManager";
 import { CampActions } from "../actions/campActions";
 
 interface CampState {
@@ -14,18 +14,20 @@ const campReducer = (
   action: CampActions
 ): CampState => {
   switch (action.type) {
-    case "SYNCHRONIZE": {
+    case "SYNCHRONIZE_START": {
       return {
         ...state,
-        campManagers: state.campManagers.map(cm => synchronizeCamp(cm))
-      }
+        campManagers: state.campManagers.map((cm) =>
+          cm.campId === action.campId ? { ...cm, synchronizing: true } : cm
+        ),
+      };
     }
     case "SYNCHRONIZE_RESPONSE": {
       const oldCM = state.campManagers.find(cm => cm.campId === action.campId);
       if (!oldCM) {
         return state;
       }
-      const newCM = syncResponse(oldCM, action.operationCount, action.result);
+      const newCM = action.cm;
       return {
         ...state,
         selectedCampId:
@@ -61,25 +63,19 @@ const campReducer = (
         selectedListId: undefined,
       };
     }
-    case "USER_OPERATION": {
-      // I.e. an operation that will also be queued and sent to the server
-      const operation = action.op;
-      if (operation.type === "CREATE_CAMP") {
-        const newCampMgr = createNewCamp(action.campId, operation);
-        return {
-          ...state,
-          selectedCampId: action.campId,
-          campManagers: [...state.campManagers, newCampMgr]
-        };
-      }
-      const campMgr = state.campManagers.find((c) => c.campId === action.campId);
-      if (!campMgr) {
-        return state;
-      }
-      const newCamp = applyUserOperation(campMgr, operation);
+    case "CREATE_CAMP": {
       return {
         ...state,
-        campManagers: state.campManagers.map((c) => (c.campId === action.campId ? newCamp : c))
+        selectedCampId: action.cm.campId,
+        campManagers: [...state.campManagers, action.cm]
+      };
+    }
+    case "UPDATE_CAMP": {
+      return {
+        ...state,
+        campManagers: state.campManagers.map((c) =>
+          c.campId === action.cm.campId ? action.cm : c
+        ),
       };
     }
     case "LOGIN":

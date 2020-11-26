@@ -29,6 +29,7 @@ import {
 import { ItemState } from "desert-thing-packing-list-common";
 import { createSelector } from "reselect";
 import { selectedCampSelector, selectedListSelector } from "../redux/selectors";
+import { AppThunk, userOperationAction } from "../redux/actions/appActions";
 
 const useStyles = makeStyles((theme) => ({
   menuButton: {
@@ -86,7 +87,7 @@ const CampListPage: React.FC = () => {
     itemsViewSelector(state, selectedItems)
   );
 
-  const campDispatch = useDispatch<Dispatch<CampActions>>();
+  const dispatch = useDispatch<Dispatch<CampActions | AppThunk>>();
   if (!camp || !list) {
     // Assert?
     return <Fragment></Fragment>;
@@ -96,11 +97,7 @@ const CampListPage: React.FC = () => {
     if (!newItemName) {
       return;
     }
-    campDispatch({
-      type: "USER_OPERATION",
-      campId: camp.id,
-      op: createItem(list.id, newItemName),
-    });
+    dispatch(userOperationAction(camp.id, createItem(list.id, newItemName)));
     setNewItemName("");
   };
 
@@ -120,11 +117,12 @@ const CampListPage: React.FC = () => {
 
   const handleBulkChangeItemState = (itemState: ItemState) => () => {
     if (selectedItems.length) {
-      campDispatch({
-        type: "USER_OPERATION",
-        campId: camp.id,
-        op: changeItemState(list.id, selectedItems, itemState),
-      });
+      dispatch(
+        userOperationAction(
+          camp.id,
+          changeItemState(list.id, selectedItems, itemState)
+        )
+      );
     }
     setSelectedItems([]);
     setSetToAnchorEl(null);
@@ -132,11 +130,12 @@ const CampListPage: React.FC = () => {
 
   const handleBulkDeleteItems = () => {
     if (selectedItems.length) {
-      campDispatch({
-        type: "USER_OPERATION",
-        campId: camp.id,
-        op: changeItemDeleted(list.id, selectedItems, true),
-      });
+      dispatch(
+        userOperationAction(
+          camp.id,
+          changeItemDeleted(list.id, selectedItems, true)
+        )
+      );
     }
     setSelectedItems([]);
   };
@@ -161,7 +160,7 @@ const CampListPage: React.FC = () => {
             className={classes.menuButton}
             color="inherit"
             aria-label="back"
-            onClick={() => campDispatch({ type: "CLOSE_CAMP_LIST" })}
+            onClick={() => dispatch({ type: "CLOSE_CAMP_LIST" })}
           >
             <Icons.ArrowBackIos />
           </IconButton>
@@ -303,15 +302,16 @@ const CampListPage: React.FC = () => {
                 variant="outlined"
                 className={classes.itemStateSelector}
                 onChange={(event) =>
-                  campDispatch({
-                    type: "USER_OPERATION",
-                    campId: camp.id,
-                    op: changeItemState(
-                      list.id,
-                      [item.id],
-                      event.target.value as ItemState
-                    ),
-                  })
+                  dispatch(
+                    userOperationAction(
+                      camp.id,
+                      changeItemState(
+                        list.id,
+                        [item.id],
+                        event.target.value as ItemState
+                      )
+                    )
+                  )
                 }
               >
                 <MenuItem value={ItemState.UNPURCHASED}>Unpurchased</MenuItem>

@@ -95,6 +95,7 @@ const Login: React.FC<LoginProps> = (props) => {
                   }
                 }}
                 className={classes.textfield}
+                data-testid="email-box"
               />
             </Grid>
             <Grid item xs={12}>
@@ -113,6 +114,7 @@ const Login: React.FC<LoginProps> = (props) => {
                   }
                 }}
                 className={classes.textfield}
+                data-testid="password-box"
               />
             </Grid>
             <Grid item xs="auto">
@@ -123,6 +125,7 @@ const Login: React.FC<LoginProps> = (props) => {
                 disabled={!email || !password}
                 className={classes.button}
                 onClick={handleLogin}
+                data-testid="login-button"
               >
                 Log in
               </Button>

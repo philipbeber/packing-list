@@ -7,6 +7,7 @@ import { AnyAction, applyMiddleware, createStore } from "redux";
 import { Provider } from "react-redux";
 import rootReducer, { AppState } from "./redux/reducers/rootReducer";
 import thunkMiddleware from 'redux-thunk'
+import { log } from "desert-thing-packing-list-common";
 
 type RenderApolloOptions = {
   mocks?: MockedResponse[];
@@ -19,12 +20,12 @@ type RenderApolloOptions = {
 
 function logger({ getState }: { getState: () => AppState}) {
   return (next: Dispatch<AnyAction>) => (action: AnyAction) => {
-    console.log('will dispatch', action)
+    log.info('will dispatch', action)
 
     // Call the next dispatch method in the middleware chain.
     const returnValue = next(action)
 
-    console.log('state after dispatch', JSON.stringify(getState()))
+    log.log('state after dispatch', JSON.stringify(getState()))
 
     // This will likely be the action itself, unless
     // a middleware further in chain changed it.

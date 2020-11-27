@@ -7,6 +7,9 @@ import { Provider } from "react-redux";
 import store from "./redux/store";
 import { ApolloProvider } from "@apollo/client";
 import { client } from "./apollo";
+import { log } from "desert-thing-packing-list-common";
+
+log.setLevel(log.levels.WARN);
 
 ReactDOM.render(
   <React.StrictMode>

@@ -12,8 +12,11 @@ import { CampOperation } from 'desert-thing-packing-list-common';
 import { SyncStatus } from '../../__generated__/globalTypes';
 import { setDebounceFunction } from '../../util/debounce';
 import { resetLazySynchronizeMap } from '../../model/campManager';
+import { log } from "desert-thing-packing-list-common";
 
 describe('Home Page', () => {
+
+  beforeAll(() => log.setLevel(log.levels.DEBUG));
 
   // automatically unmount and cleanup DOM after the test is finished.
   afterEach(cleanup);

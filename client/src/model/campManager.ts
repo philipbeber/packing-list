@@ -13,6 +13,7 @@ import { CampActions } from "../redux/actions/campActions";
 import { AppState } from "../redux/reducers/rootReducer";
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { debounce } from "../util/debounce";
+import { log } from "desert-thing-packing-list-common";
 
 export interface CampManager {
   readonly campId: string;
@@ -27,6 +28,7 @@ function createNewCampManager(
   id: string,
   operation: CreateCampOperation
 ): CampManager {
+  log.debug("createNewCampManager", id, operation);
   return {
     campId: id,
     current: {
@@ -159,7 +161,7 @@ async function startSync(
     }
     syncResponse(dispatch, getState, client, cm.campId, cm.operations.length, result);
   } catch (error) {
-    console.error(error);
+    log.error(error);
     syncResponse(dispatch, getState, client, cm.campId, cm.operations.length, {
       status: SyncStatus.RETRY,
     });
@@ -185,7 +187,7 @@ function syncResponse(
   }
   switch (result.status) {
     case SyncStatus.RETRY:
-      console.error("It failed");
+      log.error("It failed");
       // lazySynchronizeCamp(dispatch, getState, client, campId);
       dispatch({
         type: "SYNCHRONIZE_RESPONSE",

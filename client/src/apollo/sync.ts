@@ -5,6 +5,7 @@ import {
 } from "desert-thing-packing-list-common";
 import { Synchronize, SynchronizeVariables } from "./__generated__/Synchronize";
 import { OPERATION_FRAGMENT } from "./fragments";
+import { log } from "desert-thing-packing-list-common";
 
 export const SYNCHRONIZE = gql`
   mutation Synchronize(
@@ -52,12 +53,12 @@ export async function synchronize(
   });
   if (result.errors) {
     result.errors.forEach(error => {
-      console.error(error);
+      log.error(error);
     });
     return { status: SyncStatus.RETRY };
   }
   if (!result.data) {
-    console.error("No data");
+    log.error("No data");
     return { status: SyncStatus.RETRY}
   }
   return {

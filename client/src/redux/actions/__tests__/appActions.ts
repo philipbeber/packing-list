@@ -1,33 +1,17 @@
-import React from 'react';
-
-import {
-  renderApollo,
-  cleanup,
-  fireEvent,
-  createTestStore,
-} from '../../test-utils';
-import HomePage from '../homePage';
-import { SYNCHRONIZE } from '../../apollo';
+import { createTestStore, createTestClient } from "../../../test-utils";
+import { SYNCHRONIZE } from '../../../apollo';
 import { CampOperation } from 'desert-thing-packing-list-common';
-import { SyncStatus } from '../../__generated__/globalTypes';
+import { SyncStatus } from '../../../__generated__/globalTypes';
 import { log } from "desert-thing-packing-list-common";
+import { userOperationAction } from '../appActions';
 
-describe('Home Page', () => {
+describe('App actions', () => {
 
   beforeAll(() => log.setLevel(log.levels.DEBUG));
 
-  // automatically unmount and cleanup DOM after the test is finished.
-  afterEach(cleanup);
+  jest.useFakeTimers()
 
-  test('renders login page', async () => {
-    const {getByTestId} = await renderApollo(<HomePage />);
-
-    fireEvent.click(getByTestId('menu-open'));
-    fireEvent.click(getByTestId('open-login'));
-    expect(getByTestId('email-box')).toBeInTheDocument();
-  });
-
-  test('fires sync mutation and updates store after done', async () => {
+  test('creates camp', async () => {
 
     const operations: CampOperation[] = [
       {
@@ -67,34 +51,18 @@ describe('Home Page', () => {
         info: { id: "u1234", name: "Freda", username: "a@a.xom" },
       },
       camp: {
-        campManagers: [
-          {
-            campId: "camp1",
-            current: {
-              id: "camp1",
-              name: "Hello Camp",
-              revision: 1,
-              lists: [],
-            },
-            lastServerOperation: 0,
-            operations,
-            synchronizing: false,
-          },
-        ],
-        selectedCampId: "camp1",
+        campManagers: [],
       },
     });
 
-    const {getByTestId} = renderApollo(<HomePage />, {
-      mocks,
-      store,
-      addTypename: false
-    });
+    const client = createTestClient({ mocks, addTypename: false });
 
-    fireEvent.click(getByTestId('menu-open'));
-    fireEvent.click(getByTestId('sync-button'));
+    userOperationAction(client, "camp1", operations[0])(store.dispatch, store.getState);
 
-    await new Promise((resolve) => setTimeout(resolve, 1));
+    jest.advanceTimersByTime(10000);
+    for (let i = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
 
     expect(store.getState()).toEqual({
       user: {

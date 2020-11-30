@@ -6,7 +6,7 @@
         "type": "node",
         "request": "launch",
         "runtimeExecutable": "${workspaceRoot}/client/node_modules/.bin/react-scripts",
-        "args": ["test", "--runInBand", "--no-cache", "--watch"],
+        "args": ["test", "--runInBand", "--no-cache", "--watch", "-t", "creates camp"],
         "cwd": "${workspaceRoot}/client",
         "protocol": "inspector",
         "console": "integratedTerminal",

@@ -12,6 +12,7 @@ import { useDispatch } from "react-redux";
 import { createCamp } from "../model";
 import { CampActions } from "../redux/actions/campActions";
 import { AppThunk, userOperationAction } from "../redux/actions/appActions";
+import { ApolloClient, NormalizedCacheObject, useApolloClient } from "@apollo/client";
 
 const useStyles = makeStyles((theme) => ({
   textfield: {
@@ -33,10 +34,11 @@ const CreateCamp: React.FC<CreateCampProps> = (props) => {
   const { onClose, open } = props;
   const [campName, setCampName] = React.useState("");
   const dispatch = useDispatch<Dispatch<CampActions | AppThunk>>();
+  const client = useApolloClient() as ApolloClient<NormalizedCacheObject>;
 
   const handleCreate = () => {
     const newCamp = createCamp(campName);
-    dispatch(userOperationAction(newCamp.campId, newCamp.op));
+    dispatch(userOperationAction(client, newCamp.campId, newCamp.op));
     setCampName("");
     onClose();
   };

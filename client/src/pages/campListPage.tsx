@@ -30,6 +30,7 @@ import { ItemState } from "desert-thing-packing-list-common";
 import { createSelector } from "reselect";
 import { selectedCampSelector, selectedListSelector } from "../redux/selectors";
 import { AppThunk, userOperationAction } from "../redux/actions/appActions";
+import { useApolloClient, ApolloClient, NormalizedCacheObject } from "@apollo/client";
 
 const useStyles = makeStyles((theme) => ({
   menuButton: {
@@ -88,6 +89,8 @@ const CampListPage: React.FC = () => {
   );
 
   const dispatch = useDispatch<Dispatch<CampActions | AppThunk>>();
+  const client = useApolloClient() as ApolloClient<NormalizedCacheObject>;
+
   if (!camp || !list) {
     // Assert?
     return <Fragment></Fragment>;
@@ -97,7 +100,7 @@ const CampListPage: React.FC = () => {
     if (!newItemName) {
       return;
     }
-    dispatch(userOperationAction(camp.id, createItem(list.id, newItemName)));
+    dispatch(userOperationAction(client, camp.id, createItem(list.id, newItemName)));
     setNewItemName("");
   };
 
@@ -119,6 +122,7 @@ const CampListPage: React.FC = () => {
     if (selectedItems.length) {
       dispatch(
         userOperationAction(
+          client,
           camp.id,
           changeItemState(list.id, selectedItems, itemState)
         )
@@ -132,6 +136,7 @@ const CampListPage: React.FC = () => {
     if (selectedItems.length) {
       dispatch(
         userOperationAction(
+          client,
           camp.id,
           changeItemDeleted(list.id, selectedItems, true)
         )
@@ -304,6 +309,7 @@ const CampListPage: React.FC = () => {
                 onChange={(event) =>
                   dispatch(
                     userOperationAction(
+                      client,
                       camp.id,
                       changeItemState(
                         list.id,

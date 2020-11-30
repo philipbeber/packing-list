@@ -12,7 +12,7 @@ import { Dispatch } from "react";
 import { CampActions } from "../redux/actions/campActions";
 import { AppState } from "../redux/reducers/rootReducer";
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
-import { debounce } from "../util/debounce";
+import { debounce } from "../utils";
 import { log } from "desert-thing-packing-list-common";
 
 export interface CampManager {
@@ -57,10 +57,11 @@ export function connectCamp(camp: Camp): CampManager {
 export function applyUserOperation(
   dispatch: Dispatch<CampActions>,
   getState: () => AppState,
+  client: ApolloClient<NormalizedCacheObject>,
   campId: string,
   operation: CampOperation
 ) {
-  // lazySynchronizeCamp(dispatch, getState, client, campId);  
+  lazySynchronizeCamp(dispatch, getState, client, campId);  
   const state = getState();
   if (operation.type === "CREATE_CAMP") {
     const newCampMgr = createNewCampManager(campId, operation);
@@ -92,9 +93,6 @@ export function resetCampManager(cm: CampManager): CampManager {
 }
 
 let lazySynchronizeMap = new Map<string, typeof synchronizeCamp>();
-export function resetLazySynchronizeMap() {
-  lazySynchronizeMap = new Map<string, typeof synchronizeCamp>();
-}
 
 export function lazySynchronizeCamp(
   dispatch: Dispatch<CampActions>,

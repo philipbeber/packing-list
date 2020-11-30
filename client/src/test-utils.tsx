@@ -2,12 +2,21 @@ import React, { Dispatch } from "react";
 import { render } from "@testing-library/react";
 // this adds custom jest matchers from jest-dom
 import "@testing-library/jest-dom/extend-expect";
-import { MockedProvider, MockedResponse } from "@apollo/client/testing";
+import { createMockClient, MockedProvider, MockedResponse, MockLink } from "@apollo/client/testing";
 import { AnyAction, applyMiddleware, createStore } from "redux";
 import { Provider } from "react-redux";
 import rootReducer, { AppState } from "./redux/reducers/rootReducer";
 import thunkMiddleware from 'redux-thunk'
 import { log } from "desert-thing-packing-list-common";
+import { ApolloClient, InMemoryCache, NormalizedCacheObject } from "@apollo/client";
+
+type TestClientOptions = {
+  mocks?: MockedResponse[];
+  addTypename?: any;
+  defaultOptions?: any;
+  cache?: any;
+  resolvers?: any;
+};
 
 type RenderApolloOptions = {
   mocks?: MockedResponse[];
@@ -36,6 +45,22 @@ function logger({ getState }: { getState: () => AppState}) {
 export const createTestStore = (initialState?: AppState) => {
   return createStore(rootReducer, initialState, applyMiddleware(logger, thunkMiddleware));
 }
+
+export const createTestClient = ({
+  mocks,
+  addTypename,
+  defaultOptions,
+  cache,
+  resolvers,
+}: TestClientOptions = {}) => {
+  const client = new ApolloClient<NormalizedCacheObject>({
+    cache: cache || new InMemoryCache({ addTypename: addTypename }),
+    defaultOptions,
+    link: new MockLink(mocks || [], addTypename),
+    resolvers: resolvers,
+  });
+  return client;
+};
 
 const renderApollo = (
   node: any,

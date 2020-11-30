@@ -21,6 +21,7 @@ import { createList } from "../model";
 import CampListPage from "./campListPage";
 import { selectedCampSelector } from "../redux/selectors";
 import { AppThunk, userOperationAction } from "../redux/actions/appActions";
+import { useApolloClient, ApolloClient, NormalizedCacheObject } from "@apollo/client";
 
 const useStyles = makeStyles((theme) => ({
   menuButton: {
@@ -52,6 +53,7 @@ const CampPage: React.FC = () => {
   );
 
   const dispatch = useDispatch<Dispatch<CampActions | AppThunk>>();
+  const client = useApolloClient() as ApolloClient<NormalizedCacheObject>;
   if (!camp) {
     return <Fragment></Fragment>;
   }
@@ -60,7 +62,7 @@ const CampPage: React.FC = () => {
     if (!newListName) {
       return;
     }
-    dispatch(userOperationAction(camp.id, createList(newListName)));
+    dispatch(userOperationAction(client, camp.id, createList(newListName)));
     setNewListName("");
   };
 

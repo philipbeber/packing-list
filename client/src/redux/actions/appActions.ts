@@ -21,9 +21,13 @@ export const synchronizeCampsAction = (
   });
 };
 
-export const userOperationAction = (campId: string, op: CampOperation) => {
-  return async (dispatch: Dispatch<CampActions>, getState: () => AppState) => {
-    applyUserOperation(dispatch, getState, campId, op);
+export const userOperationAction = (
+  client: ApolloClient<NormalizedCacheObject>,
+  campId: string,
+  op: CampOperation
+) => {
+  return (dispatch: Dispatch<CampActions>, getState: () => AppState) => {
+    applyUserOperation(dispatch, getState, client, campId, op);
   };
 };
 
